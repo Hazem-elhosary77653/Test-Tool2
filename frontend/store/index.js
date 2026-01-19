@@ -38,3 +38,9 @@ export const useBRDStore = create((set) => ({
   addBRD: (brd) => set((state) => ({ brds: [...state.brds, brd] })),
   removeBRD: (id) => set((state) => ({ brds: state.brds.filter((b) => b.id !== id) })),
 }));
+
+export const useProjectStore = create((set) => ({
+  activeGroupId: '',
+  activeGroupName: 'All Projects',
+  setActiveProject: (id, name) => set({ activeGroupId: id, activeGroupName: name || 'All Projects' }),
+}));

@@ -6,14 +6,13 @@ import { useAuthStore } from '@/store';
 import api from '@/lib/api';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
-import ChatBot from '@/components/ChatBot';
-import { 
-  BarChart3, FileText, BookOpen, FolderOpen, TrendingUp, Activity, LogIn, Users, Shield, Clock, 
+import {
+  BarChart3, FileText, BookOpen, FolderOpen, TrendingUp, Activity, LogIn, Users, Shield, Clock,
   ArrowRight, Download, RefreshCw, AlertCircle, CheckCircle, UserCheck, Target, Zap, Heart
 } from 'lucide-react';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  LineChart, Line, PieChart, Pie, Cell, Legend, AreaChart, Area 
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, PieChart, Pie, Cell, Legend, AreaChart, Area
 } from 'recharts';
 
 const ACTION_COLORS = {
@@ -104,26 +103,26 @@ export default function DashboardPage() {
         activitiesPromise,
         api.get('/users').catch(() => ({ data: { data: [] } }))
       ]);
-      
+
       setStats(statsRes.data);
       setActivities(activitiesRes.data?.data || []);
-      
+
       // Calculate real metrics from users data
       const users = usersRes.data?.data || [];
       const verifiedCount = users.filter(u => u.email_verified || u.verified).length;
-      
+
       // Count today's logins from activities
       const today = new Date().toDateString();
-      const todayLogins = activitiesRes.data?.data?.filter(a => 
+      const todayLogins = activitiesRes.data?.data?.filter(a =>
         new Date(a.created_at).toDateString() === today && a.action_type === 'USER_LOGIN'
       ).length || 0;
-      
+
       // Calculate trend data from activities (last 7 days)
       const trends = calculateTrendData(activitiesRes.data?.data || []);
       // Prefer backend-provided trend if available
       const backendTrend = statsRes.data?.data?.activityTrend;
       setTrendData(backendTrend && backendTrend.length ? backendTrend : trends);
-      
+
       // Set dashboard metrics
       setDashboardMetrics({
         todayLogins: todayLogins,
@@ -207,7 +206,7 @@ export default function DashboardPage() {
   const getActivityDescription = (activity) => {
     const actionType = activity.action_type;
     const userName = activity.user_name || activity.user_email || 'Unknown User';
-    
+
     const descriptions = {
       USER_LOGIN: `${userName} logged in`,
       USER_LOGOUT: `${userName} logged out`,
@@ -315,8 +314,8 @@ export default function DashboardPage() {
                     {cards.map((card) => {
                       const Icon = card.icon;
                       return (
-                        <div 
-                          key={card.title} 
+                        <div
+                          key={card.title}
                           className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 cursor-pointer group"
                         >
                           <div className="flex items-start justify-between mb-4">
@@ -355,20 +354,20 @@ export default function DashboardPage() {
                         <AreaChart data={trendData}>
                           <defs>
                             <linearGradient id="colorActivities" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#2563eb" stopOpacity={0.8}/>
-                              <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                              <stop offset="5%" stopColor="#2563eb" stopOpacity={0.8} />
+                              <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
                             </linearGradient>
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                           <XAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 12 }} />
                           <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: '#fff', 
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: '#fff',
                               border: '1px solid #e5e7eb',
                               borderRadius: '8px',
                               boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                            }} 
+                            }}
                           />
                           <Area type="monotone" dataKey="activities" stroke="#2563eb" fillOpacity={1} fill="url(#colorActivities)" />
                         </AreaChart>
@@ -390,12 +389,12 @@ export default function DashboardPage() {
                             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                             <XAxis dataKey="status" tick={{ fill: '#6b7280', fontSize: 12 }} />
                             <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} />
-                            <Tooltip 
-                              contentStyle={{ 
-                                backgroundColor: '#fff', 
+                            <Tooltip
+                              contentStyle={{
+                                backgroundColor: '#fff',
                                 border: '1px solid #e5e7eb',
                                 borderRadius: '8px',
-                              }} 
+                              }}
                             />
                             <Bar dataKey="count" fill="#2563eb" radius={[8, 8, 0, 0]} />
                           </BarChart>
@@ -529,7 +528,7 @@ export default function DashboardPage() {
                         <p className="text-sm text-gray-600 mt-1">Latest user actions and system events</p>
                       </div>
                       {user?.role === 'admin' && (
-                        <a 
+                        <a
                           href="/dashboard/admin/activity"
                           className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors text-sm font-medium"
                         >
@@ -598,8 +597,8 @@ export default function DashboardPage() {
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-900 mb-1">Dashboard Help</h3>
                         <p className="text-sm text-gray-600">
-                          This dashboard provides a real-time overview of your system. Use the refresh button to update data, 
-                          and click "Export" to download a report. For detailed information about activities, visit the 
+                          This dashboard provides a real-time overview of your system. Use the refresh button to update data,
+                          and click "Export" to download a report. For detailed information about activities, visit the
                           <a href="/dashboard/admin/activity" className="text-primary hover:underline ml-1">Activity Tracking page</a>.
                         </p>
                       </div>
@@ -611,9 +610,6 @@ export default function DashboardPage() {
           </div>
         </main>
       </div>
-      
-      {/* Chat Bot */}
-      <ChatBot />
     </div>
   );
 }

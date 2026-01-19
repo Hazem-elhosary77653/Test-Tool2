@@ -7,7 +7,7 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import Modal from '@/components/Modal';
 import api from '@/lib/api';
-import { useAuthStore } from '@/store';
+import { useAuthStore, useProjectStore } from '@/store';
 import * as azureApi from '@/lib/azure-api';
 
 const parseCriteria = (value) => {
@@ -43,7 +43,11 @@ export default function AIStoriesPage() {
     business_value: '',
     tags: '',
     azure_work_item_id: '',
+    group_id: '',
   });
+
+  const { activeGroupId, activeGroupName, setActiveProject } = useProjectStore();
+  const [userGroups, setUserGroups] = useState([]);
 
   const [loadingStories, setLoadingStories] = useState(true);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
@@ -151,7 +155,21 @@ export default function AIStoriesPage() {
     }
     loadTemplates();
     loadStories();
+    loadGroups();
   }, [user, router]);
+
+  const loadGroups = async () => {
+    try {
+      const res = await api.get('/groups/my-groups');
+      const groups = res.data?.data || [];
+      setUserGroups(groups);
+      if (groups.length > 0 && !activeGroupId) {
+        setActiveProject(groups[0].id, groups[0].name);
+      }
+    } catch (err) {
+      console.error('Failed to load groups:', err);
+    }
+  };
 
   const loadTemplates = async () => {
     try {
@@ -251,6 +269,7 @@ export default function AIStoriesPage() {
       business_value: manualForm.business_value || null,
       tags: tagsList,
       azure_work_item_id: manualForm.azure_work_item_id?.trim() || null,
+      group_id: manualForm.group_id || activeGroupId || null,
     };
 
     try {
@@ -1188,8 +1207,13 @@ export default function AIStoriesPage() {
     acceptance_criteria: parseCriteria(story.acceptance_criteria),
   })), [stories]);
 
+  const filteredByGroup = useMemo(() => {
+    if (!activeGroupId || activeGroupId === 'all') return renderedStories;
+    return renderedStories.filter(s => String(s.group_id) === String(activeGroupId));
+  }, [renderedStories, activeGroupId]);
+
   const filteredAndSortedStories = useMemo(() => {
-    let filtered = renderedStories;
+    let filtered = filteredByGroup;
 
     // Search filter
     if (searchTerm) {
@@ -1360,6 +1384,26 @@ export default function AIStoriesPage() {
                   <h1 className="text-4xl font-bold text-[#0b2b4c]">AI Story Generator</h1>
                 </div>
                 <p className="text-base text-gray-700 ml-11">Generate, refine, and manage user stories with AI-powered assistance.</p>
+              </div>
+
+              <div className="flex items-center gap-4 bg-white p-2 rounded-xl shadow-sm border border-gray-200">
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter ml-1">Active Project</span>
+                  <select
+                    className="bg-transparent border-none text-sm font-semibold text-indigo-900 focus:outline-none cursor-pointer"
+                    value={activeGroupId}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      const name = userGroups.find(g => String(g.id) === String(id))?.name || 'All Projects';
+                      setActiveProject(id, name);
+                    }}
+                  >
+                    <option value="all">All Projects</option>
+                    {userGroups.map(g => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div className="flex items-center gap-3">
 

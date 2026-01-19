@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store';
+import { useAuthStore, useProjectStore } from '@/store';
 import api from '@/lib/api';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
@@ -64,6 +64,11 @@ export default function BRDsPage() {
     }
     return list;
   }, [brds, searchTerm, filterStatus, sortBy]);
+
+  const filteredByGroup = useMemo(() => {
+    if (!activeGroupId || activeGroupId === 'all') return filteredBRDs;
+    return filteredBRDs.filter(b => String(b.group_id) === String(activeGroupId));
+  }, [filteredBRDs, activeGroupId]);
 
   const [viewModal, setViewModal] = useState({ open: false, brd: null, activeTab: 'workflow' });
   const [editModal, setEditModal] = useState({ open: false, brd: null });
@@ -249,8 +254,25 @@ export default function BRDsPage() {
       setLoading(false);
     }
   };
+  const { activeGroupId, activeGroupName, setActiveProject } = useProjectStore();
+  const [userGroups, setUserGroups] = useState([]);
+
+  const loadGroups = async () => {
+    try {
+      const res = await api.get('/groups/my-groups');
+      const groups = res.data?.data || [];
+      setUserGroups(groups);
+      if (groups.length > 0 && !activeGroupId) {
+        setActiveProject(groups[0].id, groups[0].name);
+      }
+    } catch (err) {
+      console.error('Failed to load groups:', err);
+    }
+  };
+
   useEffect(() => {
     fetchBRDs();
+    loadGroups();
   }, []);
 
   // Keyboard shortcuts
@@ -471,6 +493,26 @@ export default function BRDsPage() {
                 <p className="text-gray-600 ml-11">Generate, edit, and manage BRDs with AI-powered assistance.</p>
               </div>
 
+              <div className="flex items-center gap-4 bg-white p-2 rounded-xl shadow-sm border border-gray-200">
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter ml-1">Active Project</span>
+                  <select
+                    className="bg-transparent border-none text-sm font-semibold text-indigo-900 focus:outline-none cursor-pointer"
+                    value={activeGroupId}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      const name = userGroups.find(g => String(g.id) === String(id))?.name || 'All Projects';
+                      setActiveProject(id, name);
+                    }}
+                  >
+                    <option value="all">All Projects</option>
+                    {userGroups.map(g => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               <div className="flex items-center gap-3">
                 <button
                   onClick={fetchBRDs}
@@ -580,7 +622,7 @@ export default function BRDsPage() {
                   <p className="text-gray-600">Loading BRDs...</p>
                 </div>
               </div>
-            ) : filteredBRDs.length === 0 ? (
+            ) : filteredByGroup.length === 0 ? (
               <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
                 <div className="p-4 bg-purple-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                   <FileText size={32} className="text-purple-600" />
@@ -603,7 +645,7 @@ export default function BRDsPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {filteredBRDs.map((brd) => (
+                {filteredByGroup.map((brd) => (
                   <div
                     key={brd.id}
                     className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-all"
