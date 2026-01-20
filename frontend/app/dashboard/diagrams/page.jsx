@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  GitBranch,
+  Shapes,
   Plus,
   Sparkles,
   Search,
@@ -379,12 +379,12 @@ const DiagramsPage = () => {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-indigo-600 rounded-lg">
-                    <GitBranch size={24} className="text-white" />
+                  <div className="p-2 bg-primary rounded-lg shadow-sm">
+                    <Shapes size={24} className="text-white" />
                   </div>
-                  <h1 className="text-3xl font-bold text-gray-900">AI Diagrams</h1>
+                  <h1 className="text-3xl font-bold text-[var(--color-primary)]">AI Diagrams</h1>
                 </div>
-                <p className="text-gray-600 ml-11">Generate, manage and link visual architecture to your business requirements.</p>
+                <p className="text-[var(--color-text-muted)] ml-11">Generate, manage and link visual architecture to your business requirements.</p>
               </div>
 
               <div className="flex items-center gap-4 bg-white p-2 rounded-xl shadow-sm border border-gray-200">
@@ -507,11 +507,18 @@ const DiagramsPage = () => {
 
                 {/* Gallery Grid */}
                 {loading ? (
-                  <div className="flex items-center justify-center py-16">
-                    <div className="text-center">
-                      <div className="animate-spin h-12 w-12 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-                      <p className="text-gray-600">Loading diagrams...</p>
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <div key={i} className="bg-white rounded-xl border border-[var(--color-border)] p-5 space-y-4">
+                        <div className="bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer h-40 rounded-lg"></div>
+                        <div className="bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer h-5 w-2/3 rounded"></div>
+                        <div className="bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer h-4 w-full rounded"></div>
+                        <div className="flex gap-2">
+                          <div className="bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer h-6 w-16 rounded-full"></div>
+                          <div className="bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer h-6 w-20 rounded-full"></div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ) : filteredDiagrams.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

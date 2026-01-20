@@ -65,29 +65,29 @@ exports.chatWithProject = async (req, res) => {
         try {
             // Weekly logins
             const weeklyLogins = db.prepare(`
-                SELECT COUNT(*) as count 
-                FROM activity_logs 
-                WHERE action_type IN ('LOGIN', 'LOGIN_SUCCESS') 
+                SELECT COUNT(*) as count
+                FROM activity_logs
+                WHERE action_type IN ('LOGIN', 'LOGIN_SUCCESS')
                 AND created_at >= date('now', '-7 days')
             `).get()?.count || 0;
 
             // Top active users
             const topUsers = db.prepare(`
-                SELECT u.username, COUNT(*) as count 
-                FROM activity_logs al 
-                JOIN users u ON al.user_id = u.id 
-                WHERE al.action_type IN ('LOGIN', 'LOGIN_SUCCESS') 
-                GROUP BY u.username 
-                ORDER BY count DESC 
+                SELECT u.username, COUNT(*) as count
+                FROM activity_logs al
+                JOIN users u ON al.user_id = u.id
+                WHERE al.action_type IN ('LOGIN', 'LOGIN_SUCCESS')
+                GROUP BY u.username
+                ORDER BY count DESC
                 LIMIT 5
             `).all();
 
             // Recent system activities
             const recentActivities = db.prepare(`
-                SELECT u.username, al.action_type, al.description, al.created_at 
-                FROM activity_logs al 
-                JOIN users u ON al.user_id = u.id 
-                ORDER BY al.created_at DESC 
+                SELECT u.username, al.action_type, al.description, al.created_at
+                FROM activity_logs al
+                JOIN users u ON al.user_id = u.id
+                ORDER BY al.created_at DESC
                 LIMIT 10
             `).all();
 
@@ -130,6 +130,7 @@ exports.chatWithProject = async (req, res) => {
         }
 
         // 4. Initialize AI
+
         const config = db.prepare('SELECT * FROM ai_configurations WHERE user_id = ?').get(String(userId));
         const envApiKey = process.env.OPENAI_API_KEY;
         let effectiveKey = null;
@@ -155,6 +156,7 @@ exports.chatWithProject = async (req, res) => {
         }
 
         // 5. Build Contextual Prompt
+
         let contextText = project
             ? `You are a project-specific AI Assistant for the project: "${project.name}".\n`
             : `You are a general Project Assistant for the user's entire workspace.\n`;
@@ -170,6 +172,7 @@ exports.chatWithProject = async (req, res) => {
         if (stories.length > 0) {
             contextText += project ? "USER STORIES IN THIS PROJECT:\n" : "ALL USER STORIES IN WORKSPACE:\n";
             stories.slice(0, 20).forEach((s, i) => { // Limit to 20 stories for context window
+
                 contextText += `${i + 1}. ${s.title}\n   - Description: ${s.description}\n   - AC: ${s.acceptance_criteria}\n\n`;
             });
         }
@@ -177,6 +180,7 @@ exports.chatWithProject = async (req, res) => {
         if (brds.length > 0) {
             contextText += project ? "BRD DOCUMENTS IN THIS PROJECT:\n" : "ALL BRD DOCUMENTS IN WORKSPACE:\n";
             brds.slice(0, 5).forEach((b, i) => { // Limit to 5 BRDs for context window
+
                 contextText += `Document ${i + 1}: ${b.title}\nContent Snippet: ${b.content.substring(0, 1500)}\n\n`;
             });
         }
@@ -190,6 +194,7 @@ exports.chatWithProject = async (req, res) => {
             ? `${contextText}\nAnswer user questions based on the project context provided above. Be professional, concise, and helpful.`
             : `${contextText}\nYou have access to multiple projects, documents, and system activity statistics. Help the user summarize, compare, or find information across their workspace. You can answer questions about system usage, login frequency, and active users based on the statistics provided above.`;
 
+
         const messages = [
             {
                 role: 'system',
@@ -200,8 +205,10 @@ exports.chatWithProject = async (req, res) => {
         ];
 
         // 6. Call OpenAI via aiService (or directly if needed, but let's use the service pattern)
+        // aiService doesn't have a direct "chat" but we can use completion
         const completion = await aiService.openai.chat.completions.create({
             model: (config && config.model) || 'gpt-3.5-turbo',
+
             messages: messages,
             temperature: 0.7,
             max_tokens: 1000,

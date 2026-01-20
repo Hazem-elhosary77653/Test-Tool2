@@ -8,11 +8,12 @@ import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import Toast from '@/components/Toast';
 import useToast from '@/hooks/useToast';
-import { 
-  User, Mail, Phone, MapPin, Camera, Lock, LogOut, Globe, Bell, Palette, 
+import {
+  User, Mail, Phone, MapPin, Camera, Lock, LogOut, Globe, Bell, Palette,
   Key, Shield, Smartphone, Monitor, Clock, X, Save, Edit2, Eye, EyeOff,
   ChevronRight, AlertCircle, CheckCircle
 } from 'lucide-react';
+import { SkeletonCard, Skeleton } from '@/components/ui/Skeleton';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -85,7 +86,7 @@ export default function ProfilePage() {
           location: profileData.location || '',
           avatar: profileData.avatar || ''
         });
-        
+
         // Update auth store if avatar changed
         if (profileData.avatar) {
           useAuthStore.setState({
@@ -127,7 +128,7 @@ export default function ProfilePage() {
     try {
       setProfileLoading(true);
       const response = await api.put(`/users/${user?.id}`, profile);
-      
+
       if (response?.data?.success) {
         success('Profile updated successfully!');
         setEditMode(false);
@@ -177,7 +178,7 @@ export default function ProfilePage() {
         const avatarUrl = response.data.data.avatar;
         setProfile({ ...profile, avatar: avatarUrl });
         success('Avatar updated successfully!');
-        
+
         // Update auth store
         useAuthStore.setState({
           user: { ...user, avatar: avatarUrl }
@@ -204,7 +205,7 @@ export default function ProfilePage() {
       }
 
       const response = await api.put('/user-settings', updatedSettings);
-      
+
       if (response?.data?.success) {
         setSettings(updatedSettings);
         success('Settings updated!');
@@ -257,7 +258,7 @@ export default function ProfilePage() {
     if (!confirm('Are you sure you want to logout from this device?')) return;
 
     try {
-      await api.post(`/auth/sessions/${sessionId}/logout`).catch(() => {});
+      await api.post(`/auth/sessions/${sessionId}/logout`).catch(() => { });
       success('Session ended');
       fetchDevices();
     } catch (err) {
@@ -269,7 +270,7 @@ export default function ProfilePage() {
     if (!confirm('This will logout from all devices. Continue?')) return;
 
     try {
-      await api.post('/auth/sessions/logout-all').catch(() => {});
+      await api.post('/auth/sessions/logout-all').catch(() => { });
       success('All sessions ended. Logging out...');
       setTimeout(() => {
         logout();
@@ -298,16 +299,21 @@ export default function ProfilePage() {
                   message={toast.message}
                   type={toast.type}
                   duration={toast.duration}
-                  onClose={() => {}}
+                  onClose={() => { }}
                 />
               )}
 
               {/* Page Header */}
-              <div>
-                <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                  Profile & Settings
-                </h1>
-                <p className="text-gray-600">Manage your account, preferences, and security</p>
+              <div className="mb-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-primary rounded-lg shadow-sm">
+                    <User size={24} className="text-white" />
+                  </div>
+                  <h1 className="text-3xl font-bold text-[var(--color-primary)]">
+                    Profile & Settings
+                  </h1>
+                </div>
+                <p className="text-[var(--color-text-muted)] ml-11">Manage your account, preferences, and security</p>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -341,11 +347,10 @@ export default function ProfilePage() {
                       <h2 className="text-2xl font-bold text-gray-900">Profile Information</h2>
                       <button
                         onClick={() => setEditMode(!editMode)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition ${
-                          editMode
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition ${editMode
                             ? 'bg-red-100 text-red-700 hover:bg-red-200'
                             : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                        }`}
+                          }`}
                       >
                         {editMode ? (
                           <>
@@ -365,9 +370,9 @@ export default function ProfilePage() {
                     <div className="mb-8">
                       <div className="flex items-center gap-6">
                         {profile.avatar ? (
-                          <img 
-                            src={`http://localhost:3001${profile.avatar}`} 
-                            alt="Avatar" 
+                          <img
+                            src={`http://localhost:3001${profile.avatar}`}
+                            alt="Avatar"
                             className="w-24 h-24 rounded-full object-cover shadow-lg"
                           />
                         ) : (
@@ -376,17 +381,16 @@ export default function ProfilePage() {
                           </div>
                         )}
                         {editMode && (
-                          <label className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer transition ${
-                            avatarUploading 
-                              ? 'bg-gray-300 cursor-not-allowed' 
+                          <label className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer transition ${avatarUploading
+                              ? 'bg-gray-300 cursor-not-allowed'
                               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}>
+                            }`}>
                             <Camera size={18} />
                             {avatarUploading ? 'Uploading...' : 'Upload Photo'}
-                            <input 
-                              type="file" 
-                              accept="image/*" 
-                              className="hidden" 
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
                               onChange={handleAvatarUpload}
                               disabled={avatarUploading}
                             />
@@ -547,11 +551,10 @@ export default function ProfilePage() {
                           <button
                             key={mode}
                             onClick={() => handleSettingChange('theme', mode)}
-                            className={`flex-1 p-4 rounded-lg border-2 font-medium capitalize transition ${
-                              settings.theme === mode
+                            className={`flex-1 p-4 rounded-lg border-2 font-medium capitalize transition ${settings.theme === mode
                                 ? 'border-primary bg-primary/5'
                                 : 'border-gray-300 hover:border-gray-400'
-                            }`}
+                              }`}
                           >
                             {mode === 'light' ? '☀️' : '🌙'} {mode}
                           </button>
@@ -681,8 +684,19 @@ export default function ProfilePage() {
                     </div>
 
                     {devicesLoading ? (
-                      <div className="text-center py-8">
-                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      <div className="space-y-3">
+                        {[1, 2].map((_, i) => (
+                          <div key={i} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="flex items-center gap-4">
+                              <Skeleton className="w-8 h-8" rounded="rounded-lg" />
+                              <div className="space-y-2">
+                                <Skeleton className="h-4 w-32" rounded="rounded" />
+                                <Skeleton className="h-3 w-24" rounded="rounded" />
+                              </div>
+                            </div>
+                            <Skeleton className="w-8 h-8" rounded="rounded-lg" />
+                          </div>
+                        ))}
                       </div>
                     ) : devices.length === 0 ? (
                       <p className="text-center text-gray-600 py-8">No active sessions</p>

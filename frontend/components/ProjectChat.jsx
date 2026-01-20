@@ -45,6 +45,7 @@ const ProjectChat = ({ projectId: propProjectId, projectName: propProjectName })
         try {
             const response = await api.post(`/chat/project/${projectId}`, {
                 message: userMessage.content,
+                message: userMessage.content,
                 currentPath: pathname,
                 history: history.slice(-6) // Send last 3 exchanges for context
             });
@@ -85,8 +86,8 @@ const ProjectChat = ({ projectId: propProjectId, projectName: propProjectName })
                     <div>
                         <h3 className="font-bold text-sm leading-none">Project Assistant</h3>
                         <p className="text-[10px] text-white/70 mt-1 truncate max-w-[180px]">{projectName}</p>
-                    </div>
-                </div>
+                    </div >
+                </div >
                 <div className="flex items-center gap-1">
                     <button onClick={(e) => { e.stopPropagation(); setIsMinimized(!isMinimized); }} className="p-1.5 hover:bg-white/10 rounded-md transition-colors">
                         {isMinimized ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
@@ -95,7 +96,7 @@ const ProjectChat = ({ projectId: propProjectId, projectName: propProjectName })
                         <X size={16} />
                     </button>
                 </div>
-            </div>
+            </div >
 
             {!isMinimized && (
                 <>
@@ -125,48 +126,54 @@ const ProjectChat = ({ projectId: propProjectId, projectName: propProjectName })
                                         </button>
                                     ))}
                                 </div>
-                            </div>
+                            </div >
                         )}
 
-                        {history.map((msg, i) => (
-                            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`flex gap-2 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                                    <div className={`h-7 w-7 rounded-lg flex-shrink-0 flex items-center justify-center ${msg.role === 'user' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-600'}`}>
-                                        {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
-                                    </div>
-                                    <div className={`p-3 rounded-2xl text-[13px] shadow-sm ${msg.role === 'user'
-                                        ? 'bg-[var(--color-primary)] text-white rounded-tr-none'
-                                        : msg.isError
-                                            ? 'bg-red-50 text-red-700 border border-red-100 rounded-tl-none'
-                                            : 'bg-white text-gray-800 border border-[var(--color-border)] rounded-tl-none'
-                                        }`}>
-                                        {msg.content}
+                        {
+                            history.map((msg, i) => (
+                                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`flex gap-2 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                                        <div className={`h-7 w-7 rounded-lg flex-shrink-0 flex items-center justify-center ${msg.role === 'user' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-600'}`}>
+                                            {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
+                                        </div>
+                                        <div className={`p-3 rounded-2xl text-[13px] shadow-sm ${msg.role === 'user'
+                                            ? 'bg-[var(--color-primary)] text-white rounded-tr-none'
+                                            : msg.isError
+                                                ? 'bg-red-50 text-red-700 border border-red-100 rounded-tl-none'
+                                                : 'bg-white text-gray-800 border border-[var(--color-border)] rounded-tl-none'
+                                            }`}>
+                                            {msg.content}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))
+                        }
 
-                        {loading && (
-                            <div className="flex justify-start">
-                                <div className="flex gap-2 items-center text-gray-400 text-xs italic ml-9">
-                                    <Loader2 size={12} className="animate-spin" />
-                                    Assistant is typing...
+                        {
+                            loading && (
+                                <div className="flex justify-start">
+                                    <div className="flex gap-2 items-center text-gray-400 text-xs italic ml-9">
+                                        <Loader2 size={12} className="animate-spin" />
+                                        Assistant is typing...
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            )
+                        }
 
-                        {error && (
-                            <div className="p-2 rounded-lg bg-red-50 text-[11px] text-red-600 border border-red-100 flex items-center gap-2">
-                                <AlertCircle size={14} />
-                                {error}
-                            </div>
-                        )}
+                        {
+                            error && (
+                                <div className="p-2 rounded-lg bg-red-50 text-[11px] text-red-600 border border-red-100 flex items-center gap-2">
+                                    <AlertCircle size={14} />
+                                    {error}
+                                </div>
+                            )
+                        }
 
                         <div ref={messagesEndRef} />
-                    </div>
+                    </div >
 
                     {/* Input */}
-                    <form onSubmit={handleSend} className="p-4 border-t border-[var(--color-border)] bg-white">
+                    < form onSubmit={handleSend} className="p-4 border-t border-[var(--color-border)] bg-white" >
                         <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-1 focus-within:ring-2 focus-within:ring-[var(--color-primary)]/20 focus-within:bg-white transition-all border border-transparent focus-within:border-[var(--color-primary)]/30">
                             <input
                                 type="text"
@@ -185,10 +192,10 @@ const ProjectChat = ({ projectId: propProjectId, projectName: propProjectName })
                             </button>
                         </div>
                         <p className="text-[10px] text-center text-gray-400 mt-2">Powered by AI Study Project Intelligence</p>
-                    </form>
+                    </form >
                 </>
             )}
-        </div>
+        </div >
     );
 };
 

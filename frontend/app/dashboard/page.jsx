@@ -14,6 +14,9 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, Legend, AreaChart, Area
 } from 'recharts';
+import { Spinner, LoadingOverlay, LoadingCard } from '@/components/ui/Loading';
+import { Button } from '@/components/ui/button';
+import { SkeletonStatsCard, SkeletonChart } from '@/components/ui/Skeleton';
 
 const ACTION_COLORS = {
   USER_LOGIN: 'bg-green-100 text-green-800',
@@ -276,12 +279,17 @@ export default function DashboardPage() {
           <div className="p-6">
             <div className="max-w-7xl mx-auto">
               {/* Page Header with Refresh Button */}
-              <div className="mb-8 flex items-center justify-between">
+              <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                  <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent mb-2">
-                    Dashboard
-                  </h1>
-                  <p className="text-gray-600">Welcome back, {user?.name}! Here's your system overview.</p>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2 bg-primary rounded-lg shadow-sm">
+                      <BarChart3 size={24} className="text-white" />
+                    </div>
+                    <h1 className="text-3xl font-bold text-[var(--color-primary)]">
+                      Dashboard
+                    </h1>
+                  </div>
+                  <p className="text-[var(--color-text-muted)] ml-11">Welcome back, {user?.name}! Here's your system overview.</p>
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -303,9 +311,19 @@ export default function DashboardPage() {
               </div>
 
               {loading ? (
-                <div className="text-center py-24">
-                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                  <p className="text-gray-600 mt-4">Loading dashboard...</p>
+                <div className="space-y-6">
+                  {/* Stats Skeleton */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <SkeletonStatsCard />
+                    <SkeletonStatsCard />
+                    <SkeletonStatsCard />
+                    <SkeletonStatsCard />
+                  </div>
+                  {/* Charts Skeleton */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <SkeletonChart />
+                    <SkeletonChart />
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-6">
@@ -608,8 +626,8 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
-        </main>
-      </div>
-    </div>
+        </main >
+      </div >
+    </div >
   );
 }

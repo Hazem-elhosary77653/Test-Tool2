@@ -9,6 +9,9 @@ import Modal from '@/components/Modal';
 import api from '@/lib/api';
 import { useAuthStore, useProjectStore } from '@/store';
 import * as azureApi from '@/lib/azure-api';
+import { Spinner, LoadingOverlay, LoadingCard } from '@/components/ui/Loading';
+import { Button } from '@/components/ui/button';
+import { SkeletonCard } from '@/components/ui/Skeleton';
 
 
 const parseCriteria = (value) => {
@@ -1269,8 +1272,6 @@ export default function AIStoriesPage() {
     return sorted;
   }, [renderedStories, searchTerm, filterPriority, filterStatus, filterAzure, sortBy]);
 
-
-
   const showGlobalLoader = loadingStories || loadingTemplates || generating;
 
   const exportToJSON = () => {
@@ -1364,20 +1365,7 @@ export default function AIStoriesPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
         {showGlobalLoader && (
-          <div className="fixed inset-0 z-9999 flex items-center justify-center bg-[#0b2b4c]/60 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl p-6 shadow-2xl border border-[#ff9f1c]/30 w-80 text-center space-y-4">
-              <div className="relative w-20 h-20 mx-auto">
-                <div className="absolute inset-0 rounded-full border-[6px] border-[#ff9f1c]/70 border-t-transparent animate-spin" />
-                <div className="absolute inset-3 rounded-full bg-[#0b2b4c] flex items-center justify-center text-3xl text-[#ff9f1c] shadow-inner">
-                  🦇
-                </div>
-              </div>
-              <div className="space-y-1">
-                <p className="text-lg font-bold text-[#0b2b4c]">Loading stories</p>
-                <p className="text-sm text-gray-600">Brand mode · please wait</p>
-              </div>
-            </div>
-          </div>
+          <LoadingOverlay message={generating ? "Generating Stories..." : "Loading stories"} isFullPage={true} />
         )}
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="max-w-7xl mx-auto space-y-8">
@@ -1385,19 +1373,19 @@ export default function AIStoriesPage() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-[#0b2b4c] rounded-lg">
+                  <div className="p-2 bg-primary rounded-lg shadow-sm">
                     <Sparkles size={24} className="text-white" />
                   </div>
-                  <h1 className="text-4xl font-bold text-[#0b2b4c]">AI Story Generator</h1>
+                  <h1 className="text-3xl font-bold text-[var(--color-primary)] tracking-tight">AI Story Generator</h1>
                 </div>
-                <p className="text-base text-gray-700 ml-11">Generate, refine, and manage user stories with AI-powered assistance.</p>
+                <p className="text-base text-[var(--color-text-muted)] ml-11">Generate, refine, and manage user stories with AI-powered assistance.</p>
               </div>
 
               <div className="flex items-center gap-4 bg-white p-2 rounded-xl shadow-sm border border-gray-200">
                 <div className="flex flex-col">
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter ml-1">Active Project</span>
                   <select
-                    className="bg-transparent border-none text-sm font-semibold text-[#0b2b4c] focus:outline-none cursor-pointer"
+                    className="bg-transparent border-none text-sm font-semibold text-indigo-900 focus:outline-none cursor-pointer"
                     value={activeGroupId}
                     onChange={(e) => {
                       const id = e.target.value;
@@ -1412,7 +1400,6 @@ export default function AIStoriesPage() {
                   </select>
                 </div>
               </div>
-
               <div className="flex items-center gap-3">
 
 
@@ -1492,25 +1479,27 @@ export default function AIStoriesPage() {
                   )}
                 </div>
               </div>
-            </div>
-          </div>
+            </div >
+          </div >
 
           {/* Status Messages */}
-          {status && (
-            <div className={`fixed top-20 left-1/2 transform -translate-x-1/2 z-[9999] p-4 rounded-lg border-l-4 text-sm font-medium transition-all duration-300 shadow-2xl max-w-md ${status.type === 'error'
-              ? 'border-l-red-500 bg-red-50 text-red-700 border border-red-200'
-              : 'border-l-green-500 bg-green-50 text-green-700 border border-green-200'
-              }`}>
-              <div className="flex items-start gap-3">
-                {status.type === 'error' ? (
-                  <AlertCircle size={20} className="flex-shrink-0 mt-0.5" />
-                ) : (
-                  <Check size={20} className="flex-shrink-0 mt-0.5" />
-                )}
-                <div className="flex-1 whitespace-pre-line">{status.message}</div>
+          {
+            status && (
+              <div className={`fixed top-20 left-1/2 transform -translate-x-1/2 z-[9999] p-4 rounded-lg border-l-4 text-sm font-medium transition-all duration-300 shadow-2xl max-w-md ${status.type === 'error'
+                ? 'border-l-red-500 bg-red-50 text-red-700 border border-red-200'
+                : 'border-l-green-500 bg-green-50 text-green-700 border border-green-200'
+                }`}>
+                <div className="flex items-start gap-3">
+                  {status.type === 'error' ? (
+                    <AlertCircle size={20} className="flex-shrink-0 mt-0.5" />
+                  ) : (
+                    <Check size={20} className="flex-shrink-0 mt-0.5" />
+                  )}
+                  <div className="flex-1 whitespace-pre-line">{status.message}</div>
+                </div>
               </div>
-            </div>
-          )}
+            )
+          }
 
           {/* Search & Filters - Clean Layout */}
           <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm mb-4">
@@ -1665,14 +1654,7 @@ export default function AIStoriesPage() {
 
               {/* Stories List */}
               {loadingStories ? (
-                <div className="card p-10 text-center bg-white rounded-lg border border-gray-200 shadow-sm">
-                  <div className="flex justify-center mb-3">
-                    <div className="p-3 bg-blue-100 rounded-full">
-                      <RefreshCw size={24} className="text-blue-600 animate-spin" />
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-600 font-semibold">Loading stories...</p>
-                </div>
+                <LoadingCard message="Loading user stories..." />
               ) : filteredAndSortedStories.length === 0 ? (
                 <div className="card p-10 text-center bg-white border-2 border-dashed border-gray-300 rounded-lg">
                   <div className="flex justify-center mb-3">
@@ -1868,116 +1850,119 @@ export default function AIStoriesPage() {
               )}
             </div>
           </div>
-        </main>
-      </div>
+        </main >
+      </div >
 
       {/* Story Details Modal */}
-      <Modal
+      < Modal
         isOpen={detailsModal.open}
-        onClose={() => setDetailsModal({ open: false, story: null })}
+        onClose={() => setDetailsModal({ open: false, story: null })
+        }
         title={detailsModal.story ? `📖 ${detailsModal.story.title}` : ''}
       >
-        {detailsModal.story && (
-          <div className="space-y-6">
-            {/* Status & Priority */}
-            <div className="flex flex-wrap gap-3">
-              <span className={`px-4 py-2 rounded-lg text-sm font-semibold ${detailsModal.story.priority === 'P1' ? 'bg-red-100 text-red-700' :
-                detailsModal.story.priority === 'P2' ? 'bg-amber-100 text-amber-700' :
-                  'bg-emerald-100 text-emerald-700'
-                }`}>
-                {detailsModal.story.priority} Priority
-              </span>
-              <span className={`px-4 py-2 rounded-lg text-sm font-semibold ${detailsModal.story.status === 'draft' ? 'bg-gray-100 text-gray-700' :
-                detailsModal.story.status === 'ready' ? 'bg-blue-100 text-blue-700' :
-                  detailsModal.story.status === 'in-progress' ? 'bg-purple-100 text-purple-700' :
-                    'bg-green-100 text-green-700'
-                }`}>
-                {detailsModal.story.status}
-              </span>
-              {detailsModal.story.generated_by_ai && (
-                <span className="px-4 py-2 rounded-lg bg-purple-100 text-purple-700 text-sm font-semibold">
-                  ✨ AI Generated
+        {
+          detailsModal.story && (
+            <div className="space-y-6">
+              {/* Status & Priority */}
+              <div className="flex flex-wrap gap-3">
+                <span className={`px-4 py-2 rounded-lg text-sm font-semibold ${detailsModal.story.priority === 'P1' ? 'bg-red-100 text-red-700' :
+                  detailsModal.story.priority === 'P2' ? 'bg-amber-100 text-amber-700' :
+                    'bg-emerald-100 text-emerald-700'
+                  }`}>
+                  {detailsModal.story.priority} Priority
                 </span>
+                <span className={`px-4 py-2 rounded-lg text-sm font-semibold ${detailsModal.story.status === 'draft' ? 'bg-gray-100 text-gray-700' :
+                  detailsModal.story.status === 'ready' ? 'bg-blue-100 text-blue-700' :
+                    detailsModal.story.status === 'in-progress' ? 'bg-purple-100 text-purple-700' :
+                      'bg-green-100 text-green-700'
+                  }`}>
+                  {detailsModal.story.status}
+                </span>
+                {detailsModal.story.generated_by_ai && (
+                  <span className="px-4 py-2 rounded-lg bg-purple-100 text-purple-700 text-sm font-semibold">
+                    ✨ AI Generated
+                  </span>
+                )}
+              </div>
+
+              {/* Description */}
+              <div>
+                <h3 className="font-bold text-gray-900 mb-2">Description</h3>
+                <p className="text-gray-700 leading-relaxed">{detailsModal.story.description || 'No description'}</p>
+              </div>
+
+              {/* Acceptance Criteria */}
+              {detailsModal.story.acceptance_criteria && detailsModal.story.acceptance_criteria.length > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+                  <h3 className="font-bold text-gray-900">✓ Acceptance Criteria</h3>
+                  <ul className="space-y-2 text-gray-700">
+                    {detailsModal.story.acceptance_criteria.map((c, idx) => (
+                      <li key={idx} className="flex gap-3">
+                        <span className="text-blue-600 font-bold">•</span>
+                        <span>{c}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
-            </div>
 
-            {/* Description */}
-            <div>
-              <h3 className="font-bold text-gray-900 mb-2">Description</h3>
-              <p className="text-gray-700 leading-relaxed">{detailsModal.story.description || 'No description'}</p>
-            </div>
-
-            {/* Acceptance Criteria */}
-            {detailsModal.story.acceptance_criteria && detailsModal.story.acceptance_criteria.length > 0 && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
-                <h3 className="font-bold text-gray-900">✓ Acceptance Criteria</h3>
-                <ul className="space-y-2 text-gray-700">
-                  {detailsModal.story.acceptance_criteria.map((c, idx) => (
-                    <li key={idx} className="flex gap-3">
-                      <span className="text-blue-600 font-bold">•</span>
-                      <span>{c}</span>
-                    </li>
-                  ))}
-                </ul>
+              {/* Metrics */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-xs text-gray-600 mb-1">Story Points</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {detailsModal.story.estimated_points ?? 'Not estimated'}
+                  </p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-xs text-gray-600 mb-1">Business Value</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {detailsModal.story.business_value || 'N/A'}
+                  </p>
+                </div>
               </div>
-            )}
 
-            {/* Metrics */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-xs text-gray-600 mb-1">Story Points</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {detailsModal.story.estimated_points ?? 'Not estimated'}
+              {/* Meta Info */}
+              <div className="border-t border-gray-200 pt-4">
+                <p className="text-sm text-gray-600">
+                  <span className="font-semibold">Created:</span> {formatDate(detailsModal.story.created_at)}
                 </p>
               </div>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-xs text-gray-600 mb-1">Business Value</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {detailsModal.story.business_value || 'N/A'}
-                </p>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t border-gray-200">
+                <button
+                  className="flex-1 btn bg-[#0b2b4c]/10 text-[#0b2b4c] border border-[#0b2b4c]/30 hover:bg-[#0b2b4c]/15 rounded-lg py-2 font-semibold transition-all"
+                  onClick={() => {
+                    setDetailsModal({ open: false, story: null });
+                    openManualModal(detailsModal.story);
+                  }}
+                >
+                  <Edit2 size={16} className="mr-2" /> Edit
+                </button>
+                <button
+                  className="flex-1 btn bg-red-50 text-red-700 border border-red-300 hover:bg-red-100 rounded-lg py-2 font-semibold transition-all"
+                  onClick={() => {
+                    deleteStory(detailsModal.story.id);
+                    setDetailsModal({ open: false, story: null });
+                  }}
+                >
+                  <Trash2 size={16} className="mr-2" /> Delete
+                </button>
+                <button
+                  className="flex-1 btn btn-light border border-[#0b2b4c]/20 text-[#0b2b4c] hover:bg-gray-100 rounded-lg py-2 font-semibold transition-all"
+                  onClick={() => setDetailsModal({ open: false, story: null })}
+                >
+                  Close
+                </button>
               </div>
             </div>
-
-            {/* Meta Info */}
-            <div className="border-t border-gray-200 pt-4">
-              <p className="text-sm text-gray-600">
-                <span className="font-semibold">Created:</span> {formatDate(detailsModal.story.created_at)}
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3 pt-4 border-t border-gray-200">
-              <button
-                className="flex-1 btn bg-[#0b2b4c]/10 text-[#0b2b4c] border border-[#0b2b4c]/30 hover:bg-[#0b2b4c]/15 rounded-lg py-2 font-semibold transition-all"
-                onClick={() => {
-                  setDetailsModal({ open: false, story: null });
-                  openManualModal(detailsModal.story);
-                }}
-              >
-                <Edit2 size={16} className="mr-2" /> Edit
-              </button>
-              <button
-                className="flex-1 btn bg-red-50 text-red-700 border border-red-300 hover:bg-red-100 rounded-lg py-2 font-semibold transition-all"
-                onClick={() => {
-                  deleteStory(detailsModal.story.id);
-                  setDetailsModal({ open: false, story: null });
-                }}
-              >
-                <Trash2 size={16} className="mr-2" /> Delete
-              </button>
-              <button
-                className="flex-1 btn btn-light border border-[#0b2b4c]/20 text-[#0b2b4c] hover:bg-gray-100 rounded-lg py-2 font-semibold transition-all"
-                onClick={() => setDetailsModal({ open: false, story: null })}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
+          )
+        }
+      </Modal >
 
       {/* Refine Modal */}
-      <Modal
+      < Modal
         isOpen={refineModal.open}
         onClose={() => setRefineModal({ open: false, storyId: null, feedback: '' })}
         title="🔧 Refine Story"
@@ -2011,7 +1996,7 @@ export default function AIStoriesPage() {
             </button>
           </div>
         </div>
-      </Modal>
+      </Modal >
 
       <Modal
         isOpen={manualModal.open}
@@ -3452,6 +3437,6 @@ export default function AIStoriesPage() {
         </div>
       </Modal>
 
-    </div>
+    </div >
   );
 }

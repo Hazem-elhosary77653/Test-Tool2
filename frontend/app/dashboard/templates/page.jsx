@@ -486,8 +486,8 @@ export default function TemplatesPage() {
                           type="button"
                           onClick={() => toggleSection(section.id)}
                           className={`flex flex-col p-3 rounded-xl border transition-all text-left ${form.selectedSections.includes(section.id)
-                              ? 'bg-white border-white scale-[1.02] shadow-xl'
-                              : 'bg-white/5 border-white/10 hover:border-white/20'
+                            ? 'bg-white border-white scale-[1.02] shadow-xl'
+                            : 'bg-white/5 border-white/10 hover:border-white/20'
                             }`}
                         >
                           <div className="flex items-center justify-between mb-1">

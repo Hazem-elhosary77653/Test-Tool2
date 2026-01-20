@@ -3,6 +3,9 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore, useProjectStore } from '@/store';
+import { Spinner, LoadingOverlay, LoadingCard } from '@/components/ui/Loading';
+import { Button } from '@/components/ui/button';
+import { SkeletonCard } from '@/components/ui/Skeleton';
 import api from '@/lib/api';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
@@ -71,7 +74,7 @@ export default function BRDsPage() {
   }, [brds, searchTerm, filterStatus, sortBy]);
 
   const filteredByGroup = useMemo(() => {
-    if (!activeGroupId || activeGroupId === 'all') return filteredBRDs;
+    if (!activeGroupId) return filteredBRDs;
     return filteredBRDs.filter(b => String(b.group_id) === String(activeGroupId));
   }, [filteredBRDs, activeGroupId]);
 
@@ -507,12 +510,12 @@ export default function BRDsPage() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-purple-600 rounded-lg">
+                  <div className="p-2 bg-primary rounded-lg shadow-sm">
                     <FileText size={24} className="text-white" />
                   </div>
-                  <h1 className="text-3xl font-bold text-gray-900">Business Requirements Documents</h1>
+                  <h1 className="text-3xl font-bold text-[var(--color-primary)]">Business Requirements</h1>
                 </div>
-                <p className="text-gray-600 ml-11">Generate, edit, and manage BRDs with AI-powered assistance.</p>
+                <p className="text-[var(--color-text-muted)] ml-11">Generate, edit, and manage BRDs with AI-powered assistance.</p>
               </div>
 
               <div className="flex items-center gap-4 bg-white p-2 rounded-xl shadow-sm border border-gray-200">
@@ -638,11 +641,10 @@ export default function BRDsPage() {
 
             {/* BRD List */}
             {loading ? (
-              <div className="flex items-center justify-center py-16">
-                <div className="text-center">
-                  <div className="animate-spin h-12 w-12 border-4 border-purple-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-                  <p className="text-gray-600">Loading BRDs...</p>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <SkeletonCard key={i} hasIcon hasActions />
+                ))}
               </div>
             ) : filteredByGroup.length === 0 ? (
               <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
@@ -829,7 +831,7 @@ export default function BRDsPage() {
             )}
           </div>
         </main>
-      </div>
+      </div >
 
       <Modal
         isOpen={viewModal.open}
@@ -1316,6 +1318,6 @@ export default function BRDsPage() {
           </button>
         </div>
       </Modal>
-    </div >
+    </div>
   );
 }

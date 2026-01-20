@@ -133,7 +133,7 @@ export default function WorkflowPanel({ brdId, currentStatus, assignedTo, userId
       <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
         <div className="flex items-center gap-3">
           <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold uppercase ${isApproved ? 'bg-emerald-100 text-emerald-700' :
-              isInReview ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-600'
+            isInReview ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-600'
             }`}>
             {isApproved ? <CheckCircle size={14} /> : isInReview ? <Clock size={14} /> : <AlertCircle size={14} />}
             {isApproved ? 'Approved' : isInReview ? 'In Review' : 'Draft'}
@@ -301,9 +301,9 @@ export default function WorkflowPanel({ brdId, currentStatus, assignedTo, userId
                     </div>
                     <div className="flex-1 min-w-0 space-y-0.5">
                       <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium text-slate-700 capitalize truncate">
-                            {`${event.from_status || 'Created'} -> ${event.to_status || ''}`}
-                          </span>
+                        <span className="font-medium text-slate-700 capitalize truncate">
+                          {`${event.from_status || 'Created'} -> ${event.to_status || ''}`}
+                        </span>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${badge}`}>{label}</span>
                         <span className="text-slate-400 whitespace-nowrap">{formatDateTime(event.created_at)}</span>
                       </div>
