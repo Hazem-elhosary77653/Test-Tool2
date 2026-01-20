@@ -3,8 +3,9 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store';
-import { Menu, LogOut, Settings, User } from 'lucide-react';
+import { Menu, LogOut, Settings, User, Bell } from 'lucide-react';
 import api from '@/lib/api';
+import NotificationBell from './NotificationBell';
 import { useState, useRef, useEffect } from 'react';
 import ProjectChat from './ProjectChat';
 
@@ -62,6 +63,7 @@ export default function Header() {
         </Link>
 
         <div className="flex items-center gap-4">
+          <NotificationBell />
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setShowMenu(!showMenu)}

@@ -6,9 +6,15 @@ import api from '@/lib/api';
 import { useProjectStore } from '@/store';
 import { usePathname } from 'next/navigation';
 
-const ProjectChat = () => {
+<<<<<<< HEAD
+const ProjectChat = ({ projectId: propProjectId, projectName: propProjectName }) => {
     const { activeGroupId, activeGroupName } = useProjectStore();
     const pathname = usePathname();
+
+    // Use props if provided, otherwise fallback to store
+    const projectId = propProjectId || activeGroupId || 'all';
+    const projectName = propProjectName || activeGroupName || 'All Projects';
+
     const [isOpen, setIsOpen] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
     const [message, setMessage] = useState('');
@@ -38,7 +44,7 @@ const ProjectChat = () => {
         setError(null);
 
         try {
-            const response = await api.post(`/ai/project/${activeGroupId || 'all'}`, {
+            const response = await api.post(`/chat/project/${projectId}`, {
                 message: userMessage.content,
                 currentPath: pathname,
                 history: history.slice(-6) // Send last 3 exchanges for context
@@ -79,7 +85,7 @@ const ProjectChat = () => {
                     </div>
                     <div>
                         <h3 className="font-bold text-sm leading-none">Project Assistant</h3>
-                        <p className="text-[10px] text-white/70 mt-1 truncate max-w-[180px]">{activeGroupName || 'Workspace Mode'}</p>
+                        <p className="text-[10px] text-white/70 mt-1 truncate max-w-[180px]">{projectName}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -102,10 +108,10 @@ const ProjectChat = () => {
                                     <Sparkles size={24} />
                                 </div>
                                 <h4 className="font-bold text-gray-800 text-sm">
-                                    {!activeGroupId || activeGroupId === 'all' ? 'Chat with your Workspace' : 'Ask about your project'}
+                                    {projectId === 'all' ? 'Chat with your Workspace' : 'Ask about your project'}
                                 </h4>
                                 <p className="text-xs text-gray-500 mt-2">
-                                    {!activeGroupId || activeGroupId === 'all'
+                                    {projectId === 'all'
                                         ? 'I can answer questions regarding any user story or BRD in your entire workspace.'
                                         : 'I can answer questions regarding user stories, requirements, and BRD details in this project.'}
                                 </p>

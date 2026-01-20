@@ -74,18 +74,26 @@ exports.generateStories = async (req, res) => {
 
     console.log('[AI_STORY_DEBUG] userId:', userId, 'type:', typeof userId);
     const config = getUserConfig(userId);
-    console.log('[AI_STORY_DEBUG] config found:', !!config, 'has api_key:', !!(config && config.api_key));
-    if (!config || !config.api_key) {
-      console.log('[AI_STORY_DEBUG] Config missing or no API key - userId:', userId);
-      return res.status(400).json({ success: false, error: 'AI configuration not set. Please add your API key first.' });
+    const envApiKey = process.env.OPENAI_API_KEY;
+    let effectiveKey = null;
+
+    if (config && config.api_key) {
+      effectiveKey = decryptApiKey(config.api_key);
+      if (!effectiveKey) {
+        return res.status(500).json({ success: false, error: 'Failed to decrypt your AI API key' });
+      }
+    } else if (envApiKey) {
+      effectiveKey = envApiKey;
     }
 
-    const apiKey = decryptApiKey(config.api_key);
-    if (!apiKey) {
-      return res.status(500).json({ success: false, error: 'Failed to decrypt API key' });
+    if (!effectiveKey) {
+      return res.status(400).json({
+        success: false,
+        error: 'AI configuration not set. Please add your API key in AI Settings or contact the administrator.'
+      });
     }
 
-    if (!aiService.initializeOpenAI(apiKey)) {
+    if (!aiService.initializeOpenAI(effectiveKey)) {
       return res.status(500).json({ success: false, error: 'Failed to initialize AI service' });
     }
 
@@ -316,6 +324,7 @@ exports.createManualStory = (req, res) => {
       estimated_points = null,
       business_value = null,
       tags = [],
+      group_id = null,
     } = req.body;
 
     const insert = db.prepare(`
@@ -339,6 +348,10 @@ exports.createManualStory = (req, res) => {
       estimated_points,
       business_value
     );
+
+    if (group_id) {
+      db.prepare('UPDATE user_stories SET group_id = ? WHERE id = ?').run(group_id, result.lastInsertRowid);
+    }
 
     const row = getStoryForUser(result.lastInsertRowid, userId);
     return res.status(201).json({ success: true, data: formatStoryRow(row) });
@@ -366,6 +379,7 @@ exports.updateStory = (req, res) => {
       estimated_points,
       business_value,
       tags,
+      group_id,
     } = req.body;
 
     const story = getStoryForUser(id, userId);
@@ -385,6 +399,7 @@ exports.updateStory = (req, res) => {
           estimated_points = COALESCE(?, estimated_points),
           business_value = COALESCE(?, business_value),
           tags = COALESCE(?, tags),
+          group_id = COALESCE(?, group_id),
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND user_id = ?
     `);
@@ -403,6 +418,7 @@ exports.updateStory = (req, res) => {
       estimated_points ?? null,
       business_value ?? null,
       tagJson ?? null,
+      group_id ?? null,
       id,
       userId
     );

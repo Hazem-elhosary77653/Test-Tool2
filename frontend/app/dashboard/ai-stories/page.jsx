@@ -10,6 +10,7 @@ import api from '@/lib/api';
 import { useAuthStore, useProjectStore } from '@/store';
 import * as azureApi from '@/lib/azure-api';
 
+
 const parseCriteria = (value) => {
   if (!value) return [];
   if (Array.isArray(value)) return value;
@@ -213,6 +214,7 @@ export default function AIStoriesPage() {
       business_value: '',
       tags: '',
       azure_work_item_id: '',
+      group_id: activeGroupId || '',
     });
   };
 
@@ -230,6 +232,7 @@ export default function AIStoriesPage() {
         business_value: story.business_value ?? '',
         tags: Array.isArray(story.tags) ? story.tags.join(', ') : story.tags || '',
         azure_work_item_id: story.azure_work_item_id || '',
+        group_id: story.group_id || activeGroupId || '',
       });
       setManualModal({ open: true, editingId: story.id });
       return;
@@ -268,6 +271,7 @@ export default function AIStoriesPage() {
       estimated_points: manualForm.estimated_points || null,
       business_value: manualForm.business_value || null,
       tags: tagsList,
+      group_id: manualForm.group_id || null,
       azure_work_item_id: manualForm.azure_work_item_id?.trim() || null,
       group_id: manualForm.group_id || activeGroupId || null,
     };
@@ -317,6 +321,7 @@ export default function AIStoriesPage() {
         acceptanceCriteria: acceptanceList,
         status: 'draft',
         priority: 'P2',
+        group_id: activeGroupId || null
       });
 
       const created = res.data?.data;
@@ -1264,6 +1269,8 @@ export default function AIStoriesPage() {
     return sorted;
   }, [renderedStories, searchTerm, filterPriority, filterStatus, filterAzure, sortBy]);
 
+
+
   const showGlobalLoader = loadingStories || loadingTemplates || generating;
 
   const exportToJSON = () => {
@@ -1349,7 +1356,7 @@ export default function AIStoriesPage() {
   };
 
   // Stories are displayed in flat list
-  const displayStories = filteredAndSortedStories;
+  const displayStories = filteredByGroup;
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -1390,7 +1397,7 @@ export default function AIStoriesPage() {
                 <div className="flex flex-col">
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter ml-1">Active Project</span>
                   <select
-                    className="bg-transparent border-none text-sm font-semibold text-indigo-900 focus:outline-none cursor-pointer"
+                    className="bg-transparent border-none text-sm font-semibold text-[#0b2b4c] focus:outline-none cursor-pointer"
                     value={activeGroupId}
                     onChange={(e) => {
                       const id = e.target.value;
@@ -1405,6 +1412,7 @@ export default function AIStoriesPage() {
                   </select>
                 </div>
               </div>
+
               <div className="flex items-center gap-3">
 
 
@@ -3443,6 +3451,7 @@ export default function AIStoriesPage() {
           </form>
         </div>
       </Modal>
+
     </div>
   );
 }

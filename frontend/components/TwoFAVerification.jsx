@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { Shield, Copy, Check } from 'lucide-react';
 import api from '@/lib/api';
 
-export default function TwoFAVerification({ userId, userEmail, userName, onVerified, onCancel }) {
+export default function TwoFAVerification({ userId, userEmail, userName, onVerified, onCancel, twofaSetup }) {
+    // إذا تم إرسال qrCodeDataURL وsecret من backend، اعرضهم للمستخدم
+    // twofaSetup: { qrCodeDataURL, secret }
   const [verificationMethod, setVerificationMethod] = useState('code'); // 'code' or 'backup'
   const [code, setCode] = useState('');
   const [backupCode, setBackupCode] = useState('');
@@ -24,10 +26,15 @@ export default function TwoFAVerification({ userId, userEmail, userName, onVerif
 
     try {
       setLoading(true);
-      const response = await api.post('/2fa-verify/verify-code', {
+      // إذا كان هناك twofaSetup.secret (أول تفعيل)، أرسل secret مع الطلب
+      const payload = {
         userId,
         code: code.replace(/\s/g, '')
-      });
+      };
+      if (twofaSetup && twofaSetup.secret) {
+        payload.secret = twofaSetup.secret;
+      }
+      const response = await api.post('/2fa-verify/verify-code', payload);
 
       if (response.data.success) {
         setSuccess('Code verified! Logging you in...');
@@ -137,6 +144,16 @@ export default function TwoFAVerification({ userId, userEmail, userName, onVerif
             </div>
           )}
 
+          {/* QR code setup (أول مرة فقط) */}
+          {twofaSetup && verificationMethod === 'code' && (
+            <div className="mb-6 text-center">
+              <p className="mb-2 text-sm text-gray-700">Scan this QR code with your Authenticator app:</p>
+              <img src={twofaSetup.qrCodeDataURL} alt="2FA QR Code" className="mx-auto mb-2 w-40 h-40 border rounded-lg" />
+              <p className="text-xs text-gray-500">Or enter this code manually:</p>
+              <div className="font-mono text-base bg-gray-100 rounded px-2 py-1 inline-block mb-2 select-all">{twofaSetup.secret}</div>
+              <p className="text-xs text-gray-400 mb-2">After scanning, enter the 6-digit code below to complete setup.</p>
+            </div>
+          )}
           {/* Authenticator Code Form */}
           {verificationMethod === 'code' && (
             <form onSubmit={handleVerifyCode}>

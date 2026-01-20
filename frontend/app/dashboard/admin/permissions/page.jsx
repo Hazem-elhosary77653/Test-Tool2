@@ -124,7 +124,7 @@ export default function PermissionsPage() {
 
   const handleDeletePermission = async (roleOrPerm, resource, action) => {
     let role, res, act;
-    
+
     if (typeof roleOrPerm === 'object') {
       role = roleOrPerm.role;
       res = roleOrPerm.resource;
@@ -178,6 +178,7 @@ export default function PermissionsPage() {
     if (resource.includes('document')) return 'Documents';
     if (resource.includes('template')) return 'Templates';
     if (resource.includes('analytics') || resource.includes('audit') || resource.includes('settings') || resource.includes('report')) return 'Admin';
+    if (resource.includes('notification')) return 'Notifications';
     return 'General';
   };
 
@@ -294,7 +295,7 @@ export default function PermissionsPage() {
                     </h2>
                     <p className="text-sm text-gray-600 mt-0.5">Built-in roles with predefined permissions</p>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     {Object.entries(rolePermissions || {})
                       .filter(([role]) => ['admin', 'analyst', 'viewer'].includes(role))
@@ -499,16 +500,15 @@ export default function PermissionsPage() {
                           <div className="mb-5 md:mb-6">
                             <h4 className="text-xs font-bold text-gray-700 uppercase mb-3 tracking-wider">Standard Actions</h4>
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                              {['create', 'read', 'update', 'delete', 'manage_roles', 'publish', 'share', 'comment', 'export', 'configure', 'sync', 'terminate', 'reset_password', 'manage_status'].map((action) => (
+                              {['create', 'read', 'update', 'delete', 'manage_roles', 'publish', 'share', 'comment', 'export', 'configure', 'sync', 'terminate', 'reset_password', 'manage_status', 'manage', 'send_bulk'].map((action) => (
                                 <button
                                   key={action}
                                   type="button"
                                   onClick={() => toggleAction(action)}
-                                  className={`px-3 py-2 rounded-lg font-medium text-sm transition-all border-2 ${
-                                    selectedActions.includes(action)
+                                  className={`px-3 py-2 rounded-lg font-medium text-sm transition-all border-2 ${selectedActions.includes(action)
                                       ? 'border-primary bg-primary text-white shadow-md'
                                       : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
-                                  }`}
+                                    }`}
                                 >
                                   {formatPermissionText(action)}
                                 </button>
@@ -530,11 +530,10 @@ export default function PermissionsPage() {
                                       setCustomAction(action);
                                     }
                                   }}
-                                  className={`px-3 py-2 rounded-lg font-medium text-sm transition-all border-2 ${
-                                    customAction === action
+                                  className={`px-3 py-2 rounded-lg font-medium text-sm transition-all border-2 ${customAction === action
                                       ? 'border-green-500 bg-green-500 text-white shadow-md'
                                       : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
-                                  }`}
+                                    }`}
                                 >
                                   {formatPermissionText(action)}
                                 </button>

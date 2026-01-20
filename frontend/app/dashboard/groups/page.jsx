@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Notifications from '@/components/Notifications';
+import SendNotificationForm from '@/components/SendNotificationForm';
+import { useAuthStore } from '@/store';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -8,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import api from '@/lib/api';
 
 export default function GroupsPage() {
+  const user = useAuthStore((s) => s.user);
   const [groups, setGroups] = useState([]);
   const [myGroups, setMyGroups] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -146,6 +150,10 @@ export default function GroupsPage() {
 
   return (
     <div className="container mx-auto py-8">
+      {/* نموذج إرسال إشعار عبر الإيميل (للمدير فقط) */}
+      {userRole === 'admin' && <div className="mb-8"><SendNotificationForm /></div>}
+      {/* Notifications */}
+      {user?.id && <div className="mb-8"><Notifications userId={user.id} /></div>}
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold">User Groups</h1>
         {userRole === 'admin' && (

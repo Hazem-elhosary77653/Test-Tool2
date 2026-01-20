@@ -20,6 +20,7 @@ import {
   Activity,
   ChevronLeft,
   ChevronRight,
+  Bell
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -63,7 +64,8 @@ const Sidebar = () => {
     '/dashboard/settings': 'settings',
     '/dashboard/admin/users': 'users',
     '/dashboard/admin/activity': 'activity',
-    '/dashboard/admin/permissions': 'permissions'
+    '/dashboard/admin/permissions': 'permissions',
+    '/dashboard/admin/notifications': 'notifications'
   };
 
   const sections = [
@@ -79,6 +81,7 @@ const Sidebar = () => {
         { href: '/dashboard/reports', label: 'Reports', icon: BarChart3 },
         { href: '/dashboard/ai-config', label: 'AI Config', icon: Zap },
         { href: '/dashboard/azure-devops', label: 'Azure DevOps', icon: GitBranch },
+        { href: '/dashboard/notifications', label: 'Notifications', icon: Bell },
       ],
     },
   ];
@@ -89,10 +92,14 @@ const Sidebar = () => {
       { href: '/dashboard/admin/users', label: 'User Management', icon: Users },
       { href: '/dashboard/admin/activity', label: 'Activity Tracking', icon: Activity },
       { href: '/dashboard/admin/permissions', label: 'Permissions & Roles', icon: Shield },
+      { href: '/dashboard/admin/notifications', label: 'Notification Management', icon: Settings },
     ],
   };
 
-  const isActive = (href) => pathname === href || pathname.startsWith(`${href}/`);
+  const isActive = (href) => {
+    if (href === '/dashboard') return pathname === '/dashboard';
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
 
   return (
     <aside className={`${collapsed ? 'w-18' : 'w-68'} bg-[var(--color-surface)] text-[var(--color-text)] shadow-2xl hidden md:block sticky top-0 h-screen overflow-y-auto border-r border-[var(--color-border)] transition-all duration-200`}
@@ -122,11 +129,10 @@ const Sidebar = () => {
                   <Link
                     key={href}
                     href={href}
-                    className={`group relative flex items-center gap-3 px-4 py-3 rounded-2xl transition border ${
-                      active
-                        ? 'bg-[var(--color-primary)]/8 text-[var(--color-text)] border-[var(--color-accent)]/50 shadow-md shadow-[var(--color-primary)]/10 ring-1 ring-[var(--color-accent)]/40'
-                        : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-strong)] hover:border-[var(--color-border)]'
-                    }`}
+                    className={`group relative flex items-center gap-3 px-4 py-3 rounded-2xl transition border ${active
+                      ? 'bg-[var(--color-primary)]/8 text-[var(--color-text)] border-[var(--color-accent)]/50 shadow-md shadow-[var(--color-primary)]/10 ring-1 ring-[var(--color-accent)]/40'
+                      : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-strong)] hover:border-[var(--color-border)]'
+                      }`}
                   >
                     <span className={`absolute inset-y-2 left-2 w-1 rounded-full transition ${active ? 'bg-[var(--color-accent)]' : 'bg-transparent group-hover:bg-[var(--color-accent)]/60'}`}></span>
                     <div className="h-9 w-9 rounded-xl flex items-center justify-center bg-[var(--color-surface-strong)] border border-[var(--color-border)] group-hover:border-[var(--color-accent)]/60 transition">
@@ -140,32 +146,31 @@ const Sidebar = () => {
           </div>
         ))}
 
-        {canAccess('users') && (
+        {(user?.role === 'admin' || canAccess('users')) && (
           <div className="space-y-2 pt-3 border-t border-[var(--color-border)]">
             {!collapsed && <p className="px-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400/80">{adminSection.title}</p>}
             <div className="space-y-1">
               {adminSection.items
                 .filter(({ href }) => canAccess(resourceByHref[href] || ''))
                 .map(({ href, label, icon: Icon }) => {
-                const active = isActive(href);
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    className={`group relative flex items-center gap-3 px-4 py-3 rounded-2xl transition border ${
-                      active
+                  const active = isActive(href);
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      className={`group relative flex items-center gap-3 px-4 py-3 rounded-2xl transition border ${active
                         ? 'bg-[var(--color-primary)]/8 text-[var(--color-text)] border-[var(--color-accent)]/50 shadow-md shadow-[var(--color-primary)]/10 ring-1 ring-[var(--color-accent)]/40'
                         : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-strong)] hover:border-[var(--color-border)]'
-                    }`}
-                  >
-                    <span className={`absolute inset-y-2 left-2 w-1 rounded-full transition ${active ? 'bg-[var(--color-accent)]' : 'bg-transparent group-hover:bg-[var(--color-accent)]/60'}`}></span>
-                    <div className="h-9 w-9 rounded-xl flex items-center justify-center bg-[var(--color-surface-strong)] border border-[var(--color-border)] group-hover:border-[var(--color-accent)]/60 transition">
-                      <Icon size={18} className="shrink-0" />
-                    </div>
-                    {!collapsed && <span className="truncate">{label}</span>}
-                  </Link>
-                );
-              })}
+                        }`}
+                    >
+                      <span className={`absolute inset-y-2 left-2 w-1 rounded-full transition ${active ? 'bg-[var(--color-accent)]' : 'bg-transparent group-hover:bg-[var(--color-accent)]/60'}`}></span>
+                      <div className="h-9 w-9 rounded-xl flex items-center justify-center bg-[var(--color-surface-strong)] border border-[var(--color-border)] group-hover:border-[var(--color-accent)]/60 transition">
+                        <Icon size={18} className="shrink-0" />
+                      </div>
+                      {!collapsed && <span className="truncate">{label}</span>}
+                    </Link>
+                  );
+                })}
             </div>
           </div>
         )}
