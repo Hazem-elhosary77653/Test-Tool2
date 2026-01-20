@@ -6,7 +6,6 @@ import api from '@/lib/api';
 import { useProjectStore } from '@/store';
 import { usePathname } from 'next/navigation';
 
-<<<<<<< HEAD
 const ProjectChat = ({ projectId: propProjectId, projectName: propProjectName }) => {
     const { activeGroupId, activeGroupName } = useProjectStore();
     const pathname = usePathname();
