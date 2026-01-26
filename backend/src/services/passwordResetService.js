@@ -13,7 +13,7 @@ const generateResetToken = async (userId) => {
     // Store token in database
     const result = await pool.query(
       `INSERT INTO password_reset_tokens (user_id, token, expires_at, created_at)
-       VALUES ($1, $2, $3, NOW())
+       VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
        RETURNING id, token, expires_at`,
       [userId, token, expiresAt]
     );
@@ -68,14 +68,14 @@ const resetPasswordWithToken = async (token, newPassword) => {
 
     // Update user password
     await pool.query(
-      `UPDATE users SET password_hash = $1, updated_at = NOW()
+      `UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP
        WHERE id = $2`,
       [passwordHash, tokenData.user_id]
     );
 
     // Mark token as used
     await pool.query(
-      `UPDATE password_reset_tokens SET used_at = NOW()
+      `UPDATE password_reset_tokens SET used_at = CURRENT_TIMESTAMP
        WHERE id = $1`,
       [tokenData.id]
     );
@@ -102,7 +102,7 @@ const cleanupExpiredTokens = async () => {
   try {
     const result = await pool.query(
       `DELETE FROM password_reset_tokens
-       WHERE expires_at < NOW() AND used_at IS NULL`
+       WHERE expires_at < CURRENT_TIMESTAMP AND used_at IS NULL`
     );
 
     console.log(`Cleaned up ${result.rowCount} expired tokens`);

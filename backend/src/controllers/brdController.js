@@ -9,6 +9,7 @@ const pathLib = require('path');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 const aiService = require('../services/aiService');
+const notificationService = require('../services/notificationService');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const { Document, Paragraph, HeadingLevel, TextRun, TableOfContents, Packer, AlignmentType, UnderlineType } = require('docx');
@@ -143,6 +144,7 @@ exports.generateBRD = async (req, res) => {
       selected_sections,
       external_links,
       stakeholders = [],
+      group_id,
       options = {}
     } = req.body;
 
@@ -268,11 +270,11 @@ exports.generateBRD = async (req, res) => {
     const brdId = uuidv4();
     const insertStmt = db.prepare(`
       INSERT INTO brd_documents 
-      (id, user_id, title, content, version, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      (id, user_id, title, content, version, group_id, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     `);
 
-    insertStmt.run(brdId, userIdStr, title || `BRD - ${new Date().toLocaleDateString()}`, brdContent, 1);
+    insertStmt.run(brdId, userIdStr, title || `BRD - ${new Date().toLocaleDateString()}`, brdContent, 1, group_id || null);
 
     // Log the action
     const logStmt = db.prepare(`
@@ -310,7 +312,7 @@ exports.updateBRD = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
     const userIdStr = String(userId);
-    const { content, title } = req.body;
+    const { content, title, group_id } = req.body;
 
     // Get current BRD and check if user is owner or collaborator with edit access
     const getStmt = db.prepare(`
@@ -341,11 +343,11 @@ exports.updateBRD = async (req, res) => {
     // Update BRD
     const updateStmt = db.prepare(`
       UPDATE brd_documents 
-      SET content = ?, title = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP 
+      SET content = ?, title = ?, group_id = COALESCE(?, group_id), version = version + 1, updated_at = CURRENT_TIMESTAMP 
       WHERE id = ?
     `);
 
-    updateStmt.run(content || brd.content, title || brd.title, id);
+    updateStmt.run(content || brd.content, title || brd.title, group_id ?? null, id);
 
     // Save to version history
     const versionStmt = db.prepare(`
@@ -1105,6 +1107,17 @@ exports.requestReview = async (req, res) => {
         VALUES (?, 'REVIEW_REQUESTED', ?, 'brd_document', ?, CURRENT_TIMESTAMP)
       `).run(userId, reason || 'Requested for review', id);
     } catch (e) { console.error('Activity log error:', e); }
+
+    // Send notification to Assigned Reviewer
+    try {
+      await notificationService.notify(assigned_to, 'REVIEW_REQUESTED', {
+        actor_id: userId,
+        actor_name: req.user.name || req.user.username,
+        brd_title: brd.title,
+        resource_id: id,
+        resource_type: 'brd_document'
+      });
+    } catch (nErr) { console.error('Notification error:', nErr.message); }
   } catch (error) {
     console.error('Error requesting review:', error.message);
     res.status(500).json({ success: false, error: 'Failed to request review' });
@@ -1166,6 +1179,17 @@ exports.approveBRD = async (req, res) => {
         VALUES (?, 'APPROVED', ?, 'brd_document', ?, CURRENT_TIMESTAMP)
       `).run(userId, reason || 'Protocol approved', id);
     } catch (e) { console.error('Activity log error:', e); }
+
+    // Send notification to BRD Owner
+    try {
+      await notificationService.notify(brd.user_id, 'BRD_APPROVED', {
+        actor_id: userId,
+        actor_name: req.user.name || req.user.username,
+        brd_title: brd.title,
+        resource_id: id,
+        resource_type: 'brd_document'
+      });
+    } catch (nErr) { console.error('Notification error:', nErr.message); }
   } catch (error) {
     console.error('Error approving BRD:', error.message);
     res.status(500).json({ success: false, error: 'Failed to approve BRD' });
@@ -1227,6 +1251,17 @@ exports.rejectBRD = async (req, res) => {
         VALUES (?, 'REJECTED', ?, 'brd_document', ?, CURRENT_TIMESTAMP)
       `).run(userId, reason || 'Rejected for revisions', id);
     } catch (e) { console.error('Activity log error:', e); }
+
+    // Send notification to BRD Owner
+    try {
+      await notificationService.notify(brd.user_id, 'BRD_REJECTED', {
+        actor_id: userId,
+        actor_name: req.user.name || req.user.username,
+        brd_title: brd.title,
+        resource_id: id,
+        resource_type: 'brd_document'
+      });
+    } catch (nErr) { console.error('Notification error:', nErr.message); }
   } catch (error) {
     console.error('Error rejecting BRD:', error.message);
     res.status(500).json({ success: false, error: 'Failed to reject BRD' });
@@ -1338,6 +1373,17 @@ exports.addCollaborator = async (req, res) => {
         VALUES (?, 'COLLABORATOR_ADDED', ?, 'brd_document', ?, CURRENT_TIMESTAMP)
       `).run(userId, `Added collaborator: ${addedUser?.email || user_id} (${permission_level})`, id);
     } catch (e) { console.error('Activity log error:', e); }
+
+    // Send notification to added collaborator
+    try {
+      await notificationService.notify(user_id, 'COLLABORATOR_ASSIGNED', {
+        actor_id: userId,
+        actor_name: req.user.name || req.user.username,
+        brd_title: brd.title,
+        resource_id: id,
+        resource_type: 'brd_document'
+      });
+    } catch (nErr) { console.error('Notification error:', nErr.message); }
 
     res.json({ success: true, message: 'Collaborator added successfully' });
   } catch (error) {
@@ -1532,7 +1578,7 @@ exports.getComments = (req, res) => {
 /**
  * Add a comment to a BRD section
  */
-const addComment = (req, res) => {
+const addComment = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
@@ -1569,6 +1615,19 @@ const addComment = (req, res) => {
         VALUES (?, 'COMMENT_ADDED', ?, 'brd_document', ?, CURRENT_TIMESTAMP)
       `).run(userId, `Added a comment in section: ${section_id}`, id);
     } catch (e) { console.error('Activity log error:', e); }
+
+    // Send notification to BRD Owner (if the commenter is not the owner)
+    try {
+      if (userId !== Number(brd.user_id)) {
+        await notificationService.notify(brd.user_id, 'COMMENT_ADDED', {
+          actor_id: userId,
+          actor_name: req.user.name || req.user.username,
+          brd_title: brd.title,
+          resource_id: id,
+          resource_type: 'brd_document'
+        });
+      }
+    } catch (nErr) { console.error('Notification error:', nErr.message); }
 
     // Return the newly created comment
     const comment = db.prepare(`

@@ -19,7 +19,8 @@ const ROLE_PERMISSIONS = {
     ai: ['configure', 'read', 'generate'],
     azure_devops: ['configure', 'read', 'sync'],
     permissions: ['read'],
-    profile: ['read', 'update']
+    profile: ['read', 'update'],
+    notifications: ['read', 'manage', 'send_bulk', 'configure']
   },
   analyst: {
     users: ['read'],
@@ -38,7 +39,8 @@ const ROLE_PERMISSIONS = {
     ai: ['configure', 'read', 'generate'],
     azure_devops: ['configure', 'read', 'sync'],
     permissions: ['read'],
-    profile: ['read', 'update']
+    profile: ['read', 'update'],
+    notifications: ['read']
   },
   viewer: {
     users: [],
@@ -57,7 +59,8 @@ const ROLE_PERMISSIONS = {
     ai: ['read', 'generate'],
     azure_devops: ['read'],
     permissions: ['read'],
-    profile: ['read']
+    profile: ['read'],
+    notifications: ['read']
   }
 };
 

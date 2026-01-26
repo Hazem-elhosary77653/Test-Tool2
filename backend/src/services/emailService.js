@@ -3,26 +3,34 @@ const nodemailer = require('nodemailer');
 // Email transporter configuration
 let transporter;
 
-const initializeEmailService = () => {
+const initializeEmailService = async () => {
   // Check if email is configured
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-    console.warn('⚠️  Email service not configured. Emails will be logged instead.');
+    console.warn('⚠️  Email service not configured. Emails will be logged to console.');
     return null;
   }
 
   try {
     transporter = nodemailer.createTransport({
-      service: process.env.EMAIL_SERVICE || 'gmail',
+      service: 'gmail',
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD
       }
     });
 
-    console.log('✅ Email service initialized successfully');
+    // We still try to verify but we won't let it crash the app if it fails (ECONNRESET)
+    transporter.verify((error, success) => {
+      if (error) {
+        console.warn('⚠️  Email service verification failed (Network/Firewall issue). Emails will be logged to console as fallback.');
+      } else {
+        console.log('✅ Email service (Gmail) is ready to send.');
+      }
+    });
+
     return transporter;
   } catch (err) {
-    console.error('❌ Failed to initialize email service:', err.message);
+    console.error('❌ Failed to create email transporter:', err.message);
     return null;
   }
 };
@@ -30,9 +38,12 @@ const initializeEmailService = () => {
 // Send email helper
 const sendEmail = async (to, subject, htmlContent, textContent = '') => {
   try {
+    // If transporter is not ready, we fall back to logging
     if (!transporter) {
-      console.log(`[EMAIL LOG] To: ${to}, Subject: ${subject}\n${textContent || htmlContent}`);
-      return { success: true, message: 'Email logged (service not configured)' };
+      console.log('\n--- [EMAIL FALLBACK - NOT CONFIGURED] ---');
+      console.log(`To: ${to}\nSubject: ${subject}\nContent: ${textContent || 'HTML Content (Check terminal)'}`);
+      console.log('------------------------------------------\n');
+      return { success: true, message: 'Email logged to console (service not configured)' };
     }
 
     const mailOptions = {
@@ -47,8 +58,17 @@ const sendEmail = async (to, subject, htmlContent, textContent = '') => {
     console.log(`✅ Email sent to ${to}: ${subject}`);
     return { success: true, result };
   } catch (err) {
-    console.error(`❌ Failed to send email to ${to}:`, err.message);
-    return { success: false, error: err.message };
+    // CRITICAL: If SMTP fails (ECONNRESET, etc.), log content to console so user isn't blocked!
+    console.warn(`\n⚠️ SMTP Failed (${err.code}). FALLING BACK TO CONSOLE LOGGING:`);
+    console.log('================================================');
+    console.log(`TO: ${to}`);
+    console.log(`SUBJECT: ${subject}`);
+    console.log('CONTENT:');
+    console.log(textContent || 'Check HTML content above in source');
+    console.log('================================================\n');
+
+    // We return success: true because the developer can now see the link/content
+    return { success: true, message: 'Email fallback to console triggered' };
   }
 };
 

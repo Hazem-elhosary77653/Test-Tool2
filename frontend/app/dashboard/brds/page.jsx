@@ -2,7 +2,10 @@
 
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store';
+import { useAuthStore, useProjectStore } from '@/store';
+import { Spinner, LoadingOverlay, LoadingCard } from '@/components/ui/Loading';
+import { Button } from '@/components/ui/button';
+import { SkeletonCard } from '@/components/ui/Skeleton';
 import api from '@/lib/api';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
@@ -11,11 +14,12 @@ import WorkflowPanel from './components/WorkflowPanel';
 import CollaboratorsPanel from './components/CollaboratorsPanel';
 import ActivityLog from './components/ActivityLog';
 import Comments from './components/Comments';
+import MermaidViewer from '@/components/MermaidViewer';
 import {
   Edit2, Trash2, Sparkles, Search, FileText, Download,
   Eye, Clock, ChevronDown, ChevronUp, RefreshCw, Copy, Check,
   AlertCircle, History, FileDown, Share2, Users,
-  ShieldCheck, Zap, GitCompare, BookOpen, Layout, MessageSquare
+  ShieldCheck, Zap, GitCompare, BookOpen, Layout, MessageSquare, GitBranch
 } from 'lucide-react';
 
 export default function BRDsPage() {
@@ -33,9 +37,13 @@ export default function BRDsPage() {
   const [sortBy, setSortBy] = useState('date-desc');
   const [expandedBRD, setExpandedBRD] = useState(null);
   const [openExportId, setOpenExportId] = useState(null);
+  const { activeGroupId, activeGroupName, setActiveProject } = useProjectStore();
+  const [userGroups, setUserGroups] = useState([]);
 
   // Status messages
   const [status, setStatus] = useState(null);
+  const [brdDiagrams, setBrdDiagrams] = useState([]);
+  const [loadingDiagrams, setLoadingDiagrams] = useState(false);
 
   // Derived: filter and sort BRDs for listing
   const filteredBRDs = useMemo(() => {
@@ -64,6 +72,11 @@ export default function BRDsPage() {
     }
     return list;
   }, [brds, searchTerm, filterStatus, sortBy]);
+
+  const filteredByGroup = useMemo(() => {
+    if (!activeGroupId) return filteredBRDs;
+    return filteredBRDs.filter(b => String(b.group_id) === String(activeGroupId));
+  }, [filteredBRDs, activeGroupId]);
 
   const [viewModal, setViewModal] = useState({ open: false, brd: null, activeTab: 'workflow' });
   const [editModal, setEditModal] = useState({ open: false, brd: null });
@@ -249,8 +262,42 @@ export default function BRDsPage() {
       setLoading(false);
     }
   };
+  const fetchBrdDiagrams = async (brdId) => {
+    try {
+      setLoadingDiagrams(true);
+      const res = await api.get(`/diagrams/brd/${brdId}`);
+      setBrdDiagrams(res.data.data || []);
+    } catch (err) {
+      console.error('Failed to fetch BRD diagrams:', err);
+    } finally {
+      setLoadingDiagrams(false);
+    }
+  };
+
+  useEffect(() => {
+    if (viewModal.open && viewModal.brd?.id) {
+      if (viewModal.activeTab === 'diagrams') {
+        fetchBrdDiagrams(viewModal.brd.id);
+      }
+    }
+  }, [viewModal.open, viewModal.activeTab, viewModal.brd?.id]);
+
+  const loadGroups = async () => {
+    try {
+      const res = await api.get('/groups/my-groups');
+      const groups = res.data?.data || [];
+      setUserGroups(groups);
+      if (groups.length > 0 && !activeGroupId) {
+        setActiveProject(groups[0].id, groups[0].name);
+      }
+    } catch (err) {
+      console.error('Failed to load groups:', err);
+    }
+  };
+
   useEffect(() => {
     fetchBRDs();
+    loadGroups();
   }, []);
 
   // Keyboard shortcuts
@@ -398,7 +445,7 @@ export default function BRDsPage() {
     }
   };
 
-  const [editForm, setEditForm] = useState({ title: '', content: '' });
+  const [editForm, setEditForm] = useState({ title: '', content: '', group_id: '' });
   const [saving, setSaving] = useState(false);
   const openEditModal = (brd) => {
     if (brd?.status === 'approved') {
@@ -412,11 +459,11 @@ export default function BRDsPage() {
       return;
     }
 
-    setEditForm({ title: brd?.title || '', content: brd?.content || '' });
+    setEditForm({ title: brd?.title || '', content: brd?.content || '', group_id: brd?.group_id || '' });
     setEditModal({ open: true, brd });
   };
   const handleUpdateBRD = async () => {
-    try { if (!editModal.brd?.id) return; setSaving(true); await api.put(`brd/${editModal.brd.id}`, { title: editForm.title, content: editForm.content }); setStatus({ type: 'success', message: 'BRD updated' }); setEditModal({ open: false, brd: null }); fetchBRDs(); }
+    try { if (!editModal.brd?.id) return; setSaving(true); await api.put(`brd/${editModal.brd.id}`, { title: editForm.title, content: editForm.content, group_id: editForm.group_id }); setStatus({ type: 'success', message: 'BRD updated' }); setEditModal({ open: false, brd: null }); fetchBRDs(); }
     catch (err) { console.error('Error updating BRD:', err); setStatus({ type: 'error', message: 'Failed to update BRD' }); }
     finally { setSaving(false); }
   };
@@ -463,12 +510,32 @@ export default function BRDsPage() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-purple-600 rounded-lg">
+                  <div className="p-2 bg-primary rounded-lg shadow-sm">
                     <FileText size={24} className="text-white" />
                   </div>
-                  <h1 className="text-3xl font-bold text-gray-900">Business Requirements Documents</h1>
+                  <h1 className="text-3xl font-bold text-[var(--color-primary)]">Business Requirements</h1>
                 </div>
-                <p className="text-gray-600 ml-11">Generate, edit, and manage BRDs with AI-powered assistance.</p>
+                <p className="text-[var(--color-text-muted)] ml-11">Generate, edit, and manage BRDs with AI-powered assistance.</p>
+              </div>
+
+              <div className="flex items-center gap-4 bg-white p-2 rounded-xl shadow-sm border border-gray-200">
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter ml-1">Active Project</span>
+                  <select
+                    className="bg-transparent border-none text-sm font-semibold text-indigo-900 focus:outline-none cursor-pointer"
+                    value={activeGroupId}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      const name = userGroups.find(g => String(g.id) === String(id))?.name || 'All Projects';
+                      setActiveProject(id, name);
+                    }}
+                  >
+                    <option value="all">All Projects</option>
+                    {userGroups.map(g => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="flex items-center gap-3">
@@ -574,13 +641,12 @@ export default function BRDsPage() {
 
             {/* BRD List */}
             {loading ? (
-              <div className="flex items-center justify-center py-16">
-                <div className="text-center">
-                  <div className="animate-spin h-12 w-12 border-4 border-purple-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-                  <p className="text-gray-600">Loading BRDs...</p>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <SkeletonCard key={i} hasIcon hasActions />
+                ))}
               </div>
-            ) : filteredBRDs.length === 0 ? (
+            ) : filteredByGroup.length === 0 ? (
               <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
                 <div className="p-4 bg-purple-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                   <FileText size={32} className="text-purple-600" />
@@ -603,7 +669,7 @@ export default function BRDsPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {filteredBRDs.map((brd) => (
+                {filteredByGroup.map((brd) => (
                   <div
                     key={brd.id}
                     className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-all"
@@ -765,7 +831,7 @@ export default function BRDsPage() {
             )}
           </div>
         </main>
-      </div>
+      </div >
 
       <Modal
         isOpen={viewModal.open}
@@ -794,6 +860,7 @@ export default function BRDsPage() {
             {[
               { id: 'content', label: 'Protocol', icon: BookOpen },
               { id: 'analysis', label: 'Analysis', icon: Sparkles },
+              { id: 'diagrams', label: 'Diagrams', icon: GitBranch },
               { id: 'workflow', label: 'Approval', icon: ShieldCheck },
               { id: 'collaborators', label: 'Team', icon: Users },
               { id: 'activity', label: 'Activity', icon: Clock },
@@ -1009,6 +1076,63 @@ export default function BRDsPage() {
               </div>
             )}
 
+            {viewModal.activeTab === 'diagrams' && (
+              <div className="flex-1 overflow-y-auto bg-white rounded-xl border border-slate-200 p-5 animate-in fade-in duration-300 scrollbar-hide no-scrollbar">
+                <div className="flex flex-col gap-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-800">Architectural Diagrams</h3>
+                      <p className="text-xs text-slate-500">Visual representations linked to this requirement.</p>
+                    </div>
+                    <button
+                      onClick={() => router.push('/dashboard/diagrams')}
+                      className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-[11px] font-bold border border-indigo-100 hover:bg-indigo-100 transition"
+                    >
+                      Manage All Diagrams
+                    </button>
+                  </div>
+
+                  {loadingDiagrams ? (
+                    <div className="flex items-center justify-center py-20">
+                      <RefreshCw className="animate-spin text-indigo-500" size={32} />
+                    </div>
+                  ) : brdDiagrams.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-8">
+                      {brdDiagrams.map(diagram => (
+                        <div key={diagram.id} className="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden">
+                          <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between bg-white/50">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                              <span className="font-bold text-slate-700">{diagram.title}</span>
+                              <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full text-slate-500 uppercase">{diagram.diagram_type}</span>
+                            </div>
+                          </div>
+                          <div className="p-4">
+                            <MermaidViewer code={diagram.mermaid_code} id={diagram.id} />
+                            {diagram.description && (
+                              <p className="mt-4 text-[11px] text-slate-500 italic text-center px-4">{diagram.description}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center">
+                      <GitBranch size={48} className="text-slate-200 mb-4" />
+                      <h4 className="text-slate-800 font-bold">No Diagrams Linked</h4>
+                      <p className="text-slate-500 text-xs mt-1 max-w-[240px]">Go to the Diagrams module to generate a visualization for this BRD.</p>
+                      <button
+                        onClick={() => router.push('/dashboard/diagrams')}
+                        className="mt-6 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition"
+                      >
+                        Create with AI
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {viewModal.activeTab === 'comments' && (
               <div className="flex-1 overflow-y-auto bg-white rounded-xl border border-slate-200 p-5 animate-in fade-in duration-300 scrollbar-hide no-scrollbar">
                 <Comments
@@ -1194,6 +1318,6 @@ export default function BRDsPage() {
           </button>
         </div>
       </Modal>
-    </div >
+    </div>
   );
 }

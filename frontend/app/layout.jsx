@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store';
+import ProjectChat from '@/components/ProjectChat';
 import './globals.css';
 
 export default function RootLayout({ children }) {
@@ -17,6 +18,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         {children}
+        <ProjectChat />
       </body>
     </html>
   );

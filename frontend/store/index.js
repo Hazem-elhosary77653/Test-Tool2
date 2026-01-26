@@ -7,6 +7,9 @@ export const useAuthStore = create((set) => ({
   setAuth: (user, token) => {
     set({ user, token });
     localStorage.setItem('token', token);
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    }
   },
   logout: async () => {
     try {
@@ -16,11 +19,17 @@ export const useAuthStore = create((set) => ({
     }
     set({ user: null, token: null });
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
   },
   loadAuth: () => {
     const token = localStorage.getItem('token');
+    const userStr = localStorage.getItem('user');
+    let user = null;
+    if (userStr) {
+      try { user = JSON.parse(userStr); } catch { }
+    }
     if (token) {
-      set({ token });
+      set({ token, user });
     }
   },
 }));
@@ -37,4 +46,13 @@ export const useBRDStore = create((set) => ({
   setBRDs: (brds) => set({ brds }),
   addBRD: (brd) => set((state) => ({ brds: [...state.brds, brd] })),
   removeBRD: (id) => set((state) => ({ brds: state.brds.filter((b) => b.id !== id) })),
+}));
+
+export const useProjectStore = create((set) => ({
+  activeGroupId: 'all',
+  activeGroupName: 'All Projects',
+  setActiveProject: (id, name) => set({
+    activeGroupId: id || 'all',
+    activeGroupName: name || 'All Projects'
+  }),
 }));

@@ -635,6 +635,61 @@ Return ONLY a valid JSON array:
   }
 
   /**
+   * Extract user stories from a Mermaid diagram
+   * @param {string} mermaidCode - The diagram source
+   * @returns {Promise<Array>} - Extracted stories
+   */
+  async extractStoriesFromDiagram(mermaidCode) {
+    try {
+      if (!this.openai) throw new Error('OpenAI not initialized');
+
+      const prompt = `
+Based on the following Mermaid diagram code, extract a list of User Stories that can be derived from the logic, flow, or structure shown.
+Consider actors, actions, relationships, and data flows.
+
+For each story, provide:
+1. Title
+2. Description (As a... I want... so that...)
+3. Acceptance Criteria (Array of strings)
+4. Priority (P0, P1, P2)
+5. Estimated Points (1, 2, 3, 5, 8)
+
+Mermaid Code:
+${mermaidCode}
+
+Return ONLY a valid JSON array:
+[
+{
+  "title": \"...\",
+  "description": \"...\",
+  "acceptance_criteria": [\"...\", \"...\"],
+  "priority": \"...\",
+  "estimated_points": 0
+}
+]
+`;
+
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4o', // Using a better model for diagram logic analysis
+        messages: [
+          { role: 'system', content: 'You are an expert Agile Product Owner and Systems Analyst.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.3
+      });
+
+      if (response.choices && response.choices.length > 0) {
+        const jsonMatch = response.choices[0].message.content.match(/\[[\s\S]*\]/);
+        return jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+      }
+      return [];
+    } catch (error) {
+      console.error('Diagram story extraction error:', error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Get configuration from database
    * @param {number} userId - User ID
    * @returns {Object|null}
@@ -698,6 +753,58 @@ Return ONLY a valid JSON array:
     } catch (error) {
       console.error('Error saving configuration:', error.message);
       return false;
+    }
+  }
+  /**
+   * Generate a Mermaid diagram using AI
+   * @param {string} context - The context (BRD content or prompt)
+   * @param {string} type - Diagram type (flowchart, sequence, class, state, entityRelationship)
+   * @returns {Promise<Object>} - Diagram object with title, description, and mermaid_code
+   */
+  async generateDiagram(context, type = 'flowchart') {
+    try {
+      if (!this.openai) throw new Error('OpenAI not initialized');
+
+      const prompt = `
+Generate a professional Mermaid.js diagram based on the following context.
+Diagram Type: ${type}
+
+Context:
+${context.substring(0, 8000)}
+
+Rules for generation:
+1. Return ONLY the Mermaid.js code block starting with the diagram type (e.g., "graph TD", "sequenceDiagram", etc.).
+2. Do not include markdown code fences (\`\`\`).
+3. Use descriptive labels for nodes and actors.
+4. Ensure the syntax is valid for Mermaid.js.
+5. Also provide a concise title and a 1-sentence description for the diagram.
+
+Expected JSON format:
+{
+  "title": "string",
+  "description": "string",
+  "mermaid_code": "string"
+}
+Return ONLY valid JSON.
+`;
+
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4o', // Use a stronger model for complex syntax if possible
+        messages: [
+          { role: 'system', content: 'You are an expert system architect and Mermaid.js specialist. Return only valid JSON.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.3,
+        response_format: { type: "json_object" }
+      });
+
+      if (response.choices && response.choices.length > 0) {
+        return JSON.parse(response.choices[0].message.content);
+      }
+      throw new Error('No response from AI');
+    } catch (error) {
+      console.error('Diagram generation error:', error.message);
+      throw error;
     }
   }
 }

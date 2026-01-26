@@ -1,4 +1,23 @@
-#!/usr/bin/env node
+
+
+
+const migrateAdd2FASecret = () => {
+  try {
+    const columns = db.prepare("PRAGMA table_info(users)").all();
+    const has2FASecret = columns.some(col => col.name === 'twofa_secret');
+    if (!has2FASecret) {
+      console.log('📝 Adding twofa_secret column to users table...');
+      db.prepare(`ALTER TABLE users ADD COLUMN twofa_secret TEXT DEFAULT NULL`).run();
+      console.log('✅ twofa_secret column added successfully');
+    } else {
+      console.log('✅ twofa_secret column already exists in users table');
+    }
+  } catch (e) {
+    console.error('❌ Failed to add twofa_secret column:', e.message);
+  }
+};
+
+migrateAdd2FASecret();
 
 /**
  * Migration Script: Add settings column to users table
@@ -8,7 +27,11 @@
  *   node migrate-add-settings.js
  */
 
-const db = require('./src/db/connection');
+const Database = require('better-sqlite3');
+const path = require('path');
+const dbPath = process.env.DB_PATH || path.join(__dirname, './database.db');
+const db = new Database(dbPath);
+db.pragma('foreign_keys = ON');
 
 const migrateSettings = () => {
   console.log('🔄 Starting migration: Add settings column to users table...\n');
@@ -24,14 +47,27 @@ const migrateSettings = () => {
       return;
     }
 
+
     // Add settings column if it doesn't exist
     console.log('📝 Adding settings column to users table...');
     db.prepare(`
       ALTER TABLE users 
       ADD COLUMN settings TEXT DEFAULT NULL
     `).run();
-    
     console.log('✅ Settings column added successfully\n');
+
+    // Add twofa_secret column if it doesn't exist
+    const has2FASecret = columns.some(col => col.name === 'twofa_secret');
+    if (!has2FASecret) {
+      console.log('📝 Adding twofa_secret column to users table...');
+      db.prepare(`
+        ALTER TABLE users
+        ADD COLUMN twofa_secret TEXT DEFAULT NULL
+      `).run();
+      console.log('✅ twofa_secret column added successfully\n');
+    } else {
+      console.log('✅ twofa_secret column already exists in users table');
+    }
 
     // Initialize default settings for existing users (optional)
     console.log('📊 Initializing default settings for existing users...');
@@ -92,20 +128,44 @@ const migrateSettings = () => {
       return true;
     } else {
       console.log('❌ Migration verification failed');
-      return false;
-    }
+      try {
+        // Check columns in users table
+        const columns = db.prepare("PRAGMA table_info(users)").all();
+        const hasSettingsColumn = columns.some(col => col.name === 'settings');
+        const has2FASecret = columns.some(col => col.name === 'twofa_secret');
 
-  } catch (error) {
-    console.error('❌ Migration failed:', error.message);
-    console.error('\n📝 Error details:', error);
-    process.exit(1);
+        // Add settings column if it doesn't exist
+        if (!hasSettingsColumn) {
+          console.log('📝 Adding settings column to users table...');
+          db.prepare(`
+            ALTER TABLE users 
+            ADD COLUMN settings TEXT DEFAULT NULL
+          `).run();
+          console.log('✅ Settings column added successfully\n');
+        } else {
+          console.log('✅ Settings column already exists in users table');
+        }
+
+        // Add twofa_secret column if it doesn't exist
+        if (!has2FASecret) {
+          console.log('📝 Adding twofa_secret column to users table...');
+          db.prepare(`
+            ALTER TABLE users
+            ADD COLUMN twofa_secret TEXT DEFAULT NULL
+          `).run();
+          console.log('✅ twofa_secret column added successfully\n');
+
+        } else {
+          console.log('✅ twofa_secret column already exists in users table');
+        }
+      } catch (e) {
+        console.error('❌ Migration failed:', e.message);
+      }
+    }
+    return true;
+  } catch (e) {
+    console.error('❌ Migration failed:', e.message);
   }
 };
 
-// Run migration
-if (require.main === module) {
-  const success = migrateSettings();
-  process.exit(success ? 0 : 1);
-}
-
-module.exports = { migrateSettings };
+migrateSettings();

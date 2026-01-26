@@ -3,6 +3,9 @@ const pool = require('../db/connection');
 const { hashPassword, comparePassword, generateToken, getUserByCredential } = require('../utils/auth');
 const { logAuditAction } = require('../utils/audit');
 const { logUserActivity } = require('../services/activityService');
+
+const speakeasy = require('speakeasy');
+const qrcode = require('qrcode');
 const { createSession, endSession, endAllUserSessions, getSessionById } = require('../services/sessionManagementService');
 
 // Register
@@ -69,51 +72,50 @@ const register = async (req, res) => {
   }
 };
 
-// Login
+
 const login = async (req, res) => {
   try {
     const { credential, password } = req.body;
-
-    console.log('[AUTH] Login attempt with credential:', credential);
 
     if (!credential || !password) {
       return res.status(400).json({ error: 'Credential and password required' });
     }
 
-    console.log('[AUTH] Fetching user...');
     const user = await getUserByCredential(credential);
-    console.log('[AUTH] User result:', user ? `Found ${user.email}` : 'Not found');
-
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    console.log('[AUTH] Comparing password...');
     const passwordMatch = await comparePassword(password, user.password_hash);
-    console.log('[AUTH] Password match result:', passwordMatch);
-
     if (!passwordMatch) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    console.log('[AUTH] Checking if user is active...');
     if (!user.is_active) {
       return res.status(403).json({ error: 'User account is inactive' });
     }
 
-    // Check if user has 2FA enabled
-    console.log('[AUTH] Checking 2FA status...');
-    const twoFAResult = await pool.query(
-      `SELECT is_enabled FROM user_2fa WHERE user_id = $1`,
-      [user.id]
+    // تم تعطيل التحقق الثنائي 2FA مؤقتاً - تسجيل دخول عادي فقط
+    const userAgent = req.headers['user-agent'] || '';
+    const ipAddress = req.ip || req.connection?.remoteAddress || '';
+    const session = await createSession(user.id, ipAddress, userAgent);
+    const token = generateToken(user, session.id);
+    await logAuditAction(user.id, 'USER_LOGIN', 'user', user.id, null, null, req.ip);
+    await logUserActivity(
+      user.id,
+      'USER_LOGIN',
+      'User logged in',
+      {
+        ipAddress: req.ip || req.connection?.remoteAddress || '',
+        userAgent: req.headers['user-agent'] || '',
+        resourceType: 'user',
+        resourceId: user.id
+      }
     );
-
-    const has2FA = twoFAResult.rows.length > 0 && twoFAResult.rows[0].is_enabled === 1;
-
-    if (has2FA) {
-      console.log('[AUTH] 2FA is enabled for user, returning temporary token');
-      return res.status(200).json({
-        message: 'Password verified. 2FA verification required.',
+      // إرسال رد ناجح للفرونتند
+      res.json({
+        success: true,
+        token,
         user: {
           id: user.id,
           email: user.email,
@@ -121,58 +123,33 @@ const login = async (req, res) => {
           firstName: user.first_name,
           lastName: user.last_name,
           role: user.role
-        },
-        requires2FA: true
-      });
-    }
-
-    console.log('[AUTH] Creating session...');
-    const userAgent = req.headers['user-agent'] || '';
-    const ipAddress = req.ip || req.connection.remoteAddress || '';
-    const session = await createSession(user.id, ipAddress, userAgent);
-
-    console.log('[AUTH] Generating token...');
-    const token = generateToken(user, session.id);
-
-    console.log('[AUTH] Logging audit action...');
-    try {
-      await logAuditAction(user.id, 'USER_LOGIN', 'user', user.id, null, null, req.ip);
-    } catch (auditErr) {
-      console.error('[AUTH] Audit logging failed, but continuing:', auditErr.message);
-    }
-
-    // Also log to activity feed for dashboard visibility
-    try {
-      await logUserActivity(
-        user.id,
-        'USER_LOGIN',
-        'User logged in',
-        {
-          ipAddress: req.ip || req.connection?.remoteAddress || '',
-          userAgent: req.headers['user-agent'] || '',
-          resourceType: 'user',
-          resourceId: user.id
         }
-      );
-    } catch (activityErr) {
-      console.error('[AUTH] Activity logging failed, continuing:', activityErr.message);
-    }
+      });
 
-    console.log('[AUTH] Login successful for:', user.email);
-    res.json({
-      message: 'Login successful',
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        role: user.role,
-        avatar: user.avatar,
-        name: user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : user.username
-      },
-      token
-    });
+        // إضافة إشعار للمستخدم عند تسجيل الدخول
+        try {
+          const sqlite3 = require('sqlite3').verbose();
+          const db = new sqlite3.Database('./database.sqlite');
+          db.run('INSERT INTO notifications (user_id, message) VALUES (?, ?)', [user.id, 'تم تسجيل الدخول بنجاح'], function(err) {
+            if (err) console.error('Notification error:', err.message);
+          });
+
+            // إرسال إشعار عبر البريد الإلكتروني
+            try {
+              const { sendNotificationEmail } = require('../services/notificationEmailService');
+              if (user.email) {
+                await sendNotificationEmail(
+                  user.email,
+                  'إشعار تسجيل الدخول',
+                  'تم تسجيل الدخول بنجاح إلى حسابك.'
+                );
+              }
+            } catch (emailErr) {
+              console.error('Email notification error:', emailErr.message);
+            }
+        } catch (notifyErr) {
+          console.error('Notification insert error:', notifyErr.message);
+        }
   } catch (err) {
     console.error('[AUTH] Login error:', err.message);
     console.error('[AUTH] Error stack:', err.stack);

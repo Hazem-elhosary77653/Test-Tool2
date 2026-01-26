@@ -16,7 +16,7 @@ const defaultForm = {
   detail_level: 'standard',
 };
 
-export default function AIConfigPage() {
+export default function AiConfigPage() {
   const router = useRouter();
   const { user } = useAuthStore();
 
@@ -27,12 +27,17 @@ export default function AIConfigPage() {
   const [status, setStatus] = useState(null);
   const [apiConfigured, setApiConfigured] = useState(false);
 
+
+  // تم حذف خاصية الكريدت بناءً على سياسة OpenAI الجديدة
+
+
   useEffect(() => {
     if (!user) {
       router.push('/login');
       return;
     }
     loadConfig();
+    // لا داعي لجلب الكريدت بعد الآن
   }, [user, router]);
 
   const loadConfig = async () => {
@@ -78,7 +83,8 @@ export default function AIConfigPage() {
         setForm((prev) => ({ ...prev, api_key: '' }));
       }
     } catch (err) {
-      const msg = err.response?.data?.error || 'Save failed';
+      const errData = err.response?.data?.error;
+      const msg = typeof errData === 'object' ? errData.message : (errData || err.message || 'Save failed');
       setStatus({ type: 'error', message: msg });
     } finally {
       setSaving(false);
@@ -100,7 +106,8 @@ export default function AIConfigPage() {
         setStatus({ type: 'error', message: 'Connection failed' });
       }
     } catch (err) {
-      const msg = err.response?.data?.error || 'Connection failed';
+      const errData = err.response?.data?.error;
+      const msg = typeof errData === 'object' ? errData.message : (errData || err.message || 'Connection failed');
       setStatus({ type: 'error', message: msg });
     } finally {
       setTesting(false);
@@ -133,6 +140,7 @@ export default function AIConfigPage() {
               <div>
                 <h1 className="text-3xl font-bold">AI Configuration</h1>
                 <p className="text-sm text-gray-500">Manage your OpenAI settings and test connectivity.</p>
+                {/* تم حذف زر الكريدت وعرض الرصيد */}
               </div>
               <div className="text-sm text-gray-600">API key: {apiConfigured ? 'Configured' : 'Not configured'}</div>
             </div>
